@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name osculati_amperemetre_sensor-rescue)(type Legacy)(uri ${KIPRJMOD}/osculati_amperemetre_sensor-rescue.lib)(options "")(descr ""))
+  (lib (name texas-local)(type Legacy)(uri ${USERMOD}/texas-local.lib)(options "")(descr ""))
+)
