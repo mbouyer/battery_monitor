@@ -72,9 +72,9 @@ static uint16_t a2d_acc;
 
 #define PAC_I2C_ADDR 0x2e
 
-int16_t batt_v;
-int16_t batt_i;
-uint16_t batt_temp;
+int16_t batt_v[4];
+int16_t batt_i[4];
+uint16_t batt_temp[4];
 
 #if 0
 static void
@@ -104,9 +104,9 @@ send_batt_status(void)
 	msg.id.priority = NMEA2000_PRIORITY_INFO;
 	msg.dlc = sizeof(struct nmea2000_battery_status_data);
 	msg.data = &nmea2000_data[0];
-	data->voltage = batt_v;
-	data->current = batt_i;
-	data->temp = batt_temp;
+	data->voltage = batt_v[2];
+	data->current = batt_i[2];
+	data->temp = batt_temp[2];
 	data->sid = sid;
 	data->instance = 0;
 	if (! nmea2000_send_single_frame(&msg))
@@ -245,6 +245,8 @@ main(void)
 	pac_neg_pwr_fsr_t pac_neg_pwr_fsr;
 	static unsigned int poll_count;
 	uint16_t t0;
+	static int32_t voltages_acc[4];
+
 
 	devid = 0;
 	revid = 0;
@@ -305,6 +307,10 @@ main(void)
 	counter_10hz = 25;
 	counter_1hz = 10;
 	seconds = 0;
+
+	for (c = 0; c < 4; c++) {
+		voltages_acc[c] = 0;
+	}
 
 	IPR1 = 0;
 	IPR2 = 0;
@@ -480,47 +486,76 @@ again:
 		if (softintrs.bits.int_10hz) {
 			softintrs.bits.int_10hz = 0;
 			counter_1hz--;
-			if (counter_1hz == 0) {
+			/* read voltage values */
+			for (c = 0; c < 3; c++) { // XXX
 				pac_vbus_t pac_vbus;
-				pac_vsense_t pac_vsense;
-				double v, a;
-				counter_1hz = 10;
-				LEDBATT_G = 1;
-				i2c_readreg_be(PAC_I2C_ADDR, PAC_VBUS2_AVG,
-				    &pac_vbus, sizeof(pac_vbus));
-				v = (double)pac_vbus.vbus_s * 0.000488;
-				batt_v = v * 100;
-				i2c_readreg_be(PAC_I2C_ADDR, PAC_VSENSE2_AVG,
-				    &pac_vsense, sizeof(pac_vsense));
-				a = (double)pac_vsense.vsense_s * 0.00075;
-				batt_i = a * 100;
-				seconds++;
-				if (seconds == 10) {
-					seconds = 0;
-
-					printf("%4fV ", v);
-					printf("%4fA ", a);
-					pac_acccnt_t pac_acccnt;
-					i2c_readreg_be(PAC_I2C_ADDR, PAC_ACCCNT,
-					    &pac_acccnt, sizeof(pac_acccnt));
-
+				if (i2c_readreg_be(PAC_I2C_ADDR,
+				    PAC_VBUS1_AVG + c,
+				    &pac_vbus, sizeof(pac_vbus)) ==
+				    sizeof(pac_vbus))
+					voltages_acc[c] += pac_vbus.vbus_s;
+				else
+					printf("read v[%d] fail\n", c);
+			}
+			if (counter_1hz == 0) {
+				/*
+				 * read current values from accumulator,
+				 * and compute voltage & current
+				 */
+				pac_acccnt_t pac_acccnt;
+				if (i2c_readreg_be(PAC_I2C_ADDR, PAC_ACCCNT,
+				    &pac_acccnt, sizeof(pac_acccnt)) !=
+				    sizeof(pac_acccnt))
+					printf("read pac_acccnt fail\n");
+				for (c = 0; c < 3; c++) { // XXX
 					int64_t acc_value = 0;
-					i2c_readreg_be(PAC_I2C_ADDR, PAC_ACCV2,
-					    &acc_value, 7);
+					double v;
+					if (i2c_readreg_be(PAC_I2C_ADDR,
+					    PAC_ACCV1 + c,
+					    &acc_value, 7) != 7)
+						printf("read acc_value[%d] fail\n", c);
 					if (acc_value & 0x0080000000000000) {
 						/* adjust negative value */
 						acc_value |= 0xff00000000000000;
 					}
-					printf(" acc 0x%8llx ", acc_value);
-					acc_value = acc_value / pac_acccnt.acccnt_count;
-					v = (double)acc_value * 0.00075;
-					printf("%4fA count %lu", v, pac_acccnt.acccnt_count);
-					i2c_writecmd(PAC_I2C_ADDR, PAC_REFRESH);
-					printf("\n");
-				} else {
-					i2c_writecmd(PAC_I2C_ADDR, PAC_REFRESH_V);
+					/*
+					 * batt_i =
+					 * acc_value * 0.00075 * 100
+					 */
+					v = (double)acc_value * 0.075 /
+					    pac_acccnt.acccnt_count;
+					batt_i[c] = (double)acc_value * 0.075 / pac_acccnt.acccnt_count;
+					printf("%d %4.4fA ", c, v / 100);
+					/* volt = vbus * 0.000488 */
+					/*
+					 * batt_v =
+					 * voltages_acc * 0.000488 * 100 / 10;
+					 */
+					v = (double)voltages_acc[c] * 0.00488;
+					batt_v[c] = v;
+					voltages_acc[c] = 0;
+					printf("%4.3fV ", v / 100);
 				}
-				send_batt_status();
+				printf("count %lu\n", pac_acccnt.acccnt_count);
+			}
+			if (counter_1hz == 1) {
+				/* get new values and reset accumulator */
+				if (i2c_writecmd(PAC_I2C_ADDR,
+				    PAC_REFRESH) == 0)
+					printf("PAC_REFRESH fail\n");
+			} else {
+				/* just get new values */
+				if (i2c_writecmd(PAC_I2C_ADDR,
+				    PAC_REFRESH_V) == 0)
+					printf("PAC_REFRESH_V fail\n");
+			}
+			if (counter_1hz == 0) {
+				counter_1hz = 10;
+				LEDBATT_G = 1;
+				seconds++;
+				if (seconds == 10) {
+					seconds = 0;
+				}
 			} else {
 				LEDBATT_G = 0;
 			}
