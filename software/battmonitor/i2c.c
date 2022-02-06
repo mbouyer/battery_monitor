@@ -72,10 +72,11 @@ i2c_wait_idle(void)
 	while (I2C1STAT0bits.MMA) {
 		i2c_wait_count++;
 		if (i2c_wait_count == 10000) {
-			if (tries > 0 || I2C1CON1bits.P)
+			if (tries > 0 || I2C1CON1bits.P) {
+				printf(("I2C idle timeout\n"));
+				i2c_status();
 				return 0;
-			printf(("I2C idle timeout\n"));
-			i2c_status();
+			}
 			I2C1CON1bits.P = 1;
 			tries++;
 			i2c_wait_count = 0;
