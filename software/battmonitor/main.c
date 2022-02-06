@@ -76,6 +76,8 @@ int16_t batt_v[4];
 int16_t batt_i[4];
 uint16_t batt_temp[4];
 
+pac_ctrl_t pac_ctrl;
+
 #if 0
 static void
 adctotemp(void)
@@ -240,7 +242,6 @@ main(void)
 {
 	char c;
 	uint8_t i2cr;
-	pac_ctrl_t pac_ctrl;
 	pac_accumcfg_t pac_accumcfg;
 	pac_neg_pwr_fsr_t pac_neg_pwr_fsr;
 	static unsigned int poll_count;
@@ -418,14 +419,11 @@ again:
 	    sizeof(pac_ctrl))
 		c++;
 	else {
-		printf("CTRL_ACT al1 %d al2 %d mode %d dis %d %d %d %d\n",
+		printf("CTRL_ACT al1 %d al2 %d mode %d dis %d\n",
 		    pac_ctrl.ctrl_alert1,
 		    pac_ctrl.ctrl_alert2,
 		    pac_ctrl.ctrl_mode,
-		    pac_ctrl.ctrl_chan1_dis,
-		    pac_ctrl.ctrl_chan2_dis,
-		    pac_ctrl.ctrl_chan3_dis,
-		    pac_ctrl.ctrl_chan4_dis);
+		    pac_ctrl.ctrl_chan_dis);
 	}
 
 	pac_ctrl.ctrl_alert1 = pac_ctrl.ctrl_alert2 = CTRL_ALERT_ALERT;
@@ -487,8 +485,10 @@ again:
 			softintrs.bits.int_10hz = 0;
 			counter_1hz--;
 			/* read voltage values */
-			for (c = 0; c < 3; c++) { // XXX
+			for (c = 0; c < 4; c++) {
 				pac_vbus_t pac_vbus;
+				if ((pac_ctrl.ctrl_chan_dis & (8 >> c)) != 0)
+					continue;
 				if (i2c_readreg_be(PAC_I2C_ADDR,
 				    PAC_VBUS1_AVG + c,
 				    &pac_vbus, sizeof(pac_vbus)) ==
@@ -507,9 +507,14 @@ again:
 				    &pac_acccnt, sizeof(pac_acccnt)) !=
 				    sizeof(pac_acccnt))
 					printf("read pac_acccnt fail\n");
-				for (c = 0; c < 3; c++) { // XXX
+				for (c = 0; c < 4; c++) {
 					int64_t acc_value = 0;
 					double v;
+
+					if ((pac_ctrl.ctrl_chan_dis & (8 >> c))
+					    != 0)
+						continue;
+
 					if (i2c_readreg_be(PAC_I2C_ADDR,
 					    PAC_ACCV1 + c,
 					    &acc_value, 7) != 7)
