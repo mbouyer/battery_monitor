@@ -76,6 +76,7 @@ int16_t batt_v[4];
 int16_t batt_i[4];
 uint16_t batt_temp[4];
 
+static int32_t voltages_acc[4];
 pac_ctrl_t pac_ctrl;
 
 #if 0
@@ -98,19 +99,22 @@ adctotemp(void)
 #endif
 
 static void
-send_batt_status(void)
+send_batt_status(char c)
 {
 	struct nmea2000_battery_status_data *data = (void *)&nmea2000_data[0];
+
+	if ((pac_ctrl.ctrl_chan_dis & (8 >> c)) != 0)
+		return;
 
 	PGN2ID(NMEA2000_BATTERY_STATUS, msg.id);
 	msg.id.priority = NMEA2000_PRIORITY_INFO;
 	msg.dlc = sizeof(struct nmea2000_battery_status_data);
 	msg.data = &nmea2000_data[0];
-	data->voltage = batt_v[2];
-	data->current = batt_i[2];
-	data->temp = batt_temp[2];
+	data->voltage = batt_v[c];
+	data->current = batt_i[c];
+	data->temp = batt_temp[c];
 	data->sid = sid;
-	data->instance = 0;
+	data->instance = c;
 	if (! nmea2000_send_single_frame(&msg))
 		printf("send NMEA2000_BATTERY_STATUS failed\n");
 }
@@ -191,7 +195,10 @@ user_handle_iso_request(unsigned long pgn)
 	printf("ISO_REQUEST for %ld from %d\n", pgn, rid.saddr);
 	switch(pgn) {
 	case NMEA2000_BATTERY_STATUS:
-		send_batt_status();
+		for (char c = 0; c < 4; c++) {
+			if ((pac_ctrl.ctrl_chan_dis & (8 >> c)) == 0)
+				send_batt_status(c);
+		}
 		break;
 #if 0
 	case NMEA2000_DC_STATUS:
@@ -237,6 +244,48 @@ putch(char c)
 	}
 }
 
+static void
+read_pac_channel(void)
+{
+	char c;
+	static pac_acccnt_t pac_acccnt;
+	int64_t acc_value;
+	double v;
+
+	if (i2c_readreg_be(PAC_I2C_ADDR, PAC_ACCCNT,
+	    &pac_acccnt, sizeof(pac_acccnt)) != sizeof(pac_acccnt)) {
+		printf("read pac_acccnt fail\n");
+		pac_acccnt.acccnt_count = 0;
+		return;
+	} 
+	printf("\ncount %lu", pac_acccnt.acccnt_count);
+
+	for (c = 0; c < 4; c++) {
+		if ((pac_ctrl.ctrl_chan_dis & (8 >> c)) != 0)
+			continue;
+
+		acc_value = 0;
+		if (i2c_readreg_be(PAC_I2C_ADDR, PAC_ACCV1 + c,
+		    &acc_value, 7) != 7) {
+			printf("read acc_value[%d] fail\n", c);
+			continue;
+		}
+		if (acc_value & 0x0080000000000000) {
+			/* adjust negative value */
+			acc_value |= 0xff00000000000000;
+		}
+		/* batt_i = acc_value * 0.00075 * 100 */
+		v = (double)acc_value * 0.075 / pac_acccnt.acccnt_count;
+		batt_i[c] = v + 0.5;
+		printf(" %d %4.4fA", c, v / 100);
+		/* volt = vbus * 0.000488 */
+		/* batt_v = voltages_acc * 0.000488 * 100 / 10; */
+		v = (double)voltages_acc[c] * 0.00488;
+		batt_v[c] = v + 0.5;
+		printf(" %4.3fV", v / 100);
+	}
+}
+
 int
 main(void)
 {
@@ -246,7 +295,7 @@ main(void)
 	pac_neg_pwr_fsr_t pac_neg_pwr_fsr;
 	static unsigned int poll_count;
 	uint16_t t0;
-	static int32_t voltages_acc[4];
+	static int32_t voltages_acc_cur[4];
 
 
 	devid = 0;
@@ -310,7 +359,7 @@ main(void)
 	seconds = 0;
 
 	for (c = 0; c < 4; c++) {
-		voltages_acc[c] = 0;
+		voltages_acc_cur[c] = 0;
 	}
 
 	IPR1 = 0;
@@ -483,7 +532,6 @@ again:
 		}
 		if (softintrs.bits.int_10hz) {
 			softintrs.bits.int_10hz = 0;
-			counter_1hz--;
 			/* read voltage values */
 			for (c = 0; c < 4; c++) {
 				pac_vbus_t pac_vbus;
@@ -493,67 +541,42 @@ again:
 				    PAC_VBUS1_AVG + c,
 				    &pac_vbus, sizeof(pac_vbus)) ==
 				    sizeof(pac_vbus))
-					voltages_acc[c] += pac_vbus.vbus_s;
+					voltages_acc_cur[c] += pac_vbus.vbus_s;
 				else
 					printf("read v[%d] fail\n", c);
 			}
-			if (counter_1hz == 0) {
+			counter_1hz--;
+			switch(counter_1hz) {
+			case 6:
 				/*
-				 * read current values from accumulator,
-				 * and compute voltage & current
-				 */
-				pac_acccnt_t pac_acccnt;
-				if (i2c_readreg_be(PAC_I2C_ADDR, PAC_ACCCNT,
-				    &pac_acccnt, sizeof(pac_acccnt)) !=
-				    sizeof(pac_acccnt))
-					printf("read pac_acccnt fail\n");
-				for (c = 0; c < 4; c++) {
-					int64_t acc_value = 0;
-					double v;
-
-					if ((pac_ctrl.ctrl_chan_dis & (8 >> c))
-					    != 0)
-						continue;
-
-					if (i2c_readreg_be(PAC_I2C_ADDR,
-					    PAC_ACCV1 + c,
-					    &acc_value, 7) != 7)
-						printf("read acc_value[%d] fail\n", c);
-					if (acc_value & 0x0080000000000000) {
-						/* adjust negative value */
-						acc_value |= 0xff00000000000000;
-					}
-					/*
-					 * batt_i =
-					 * acc_value * 0.00075 * 100
-					 */
-					v = (double)acc_value * 0.075 /
-					    pac_acccnt.acccnt_count;
-					batt_i[c] = (double)acc_value * 0.075 / pac_acccnt.acccnt_count;
-					printf("%d %4.4fA ", c, v / 100);
-					/* volt = vbus * 0.000488 */
-					/*
-					 * batt_v =
-					 * voltages_acc * 0.000488 * 100 / 10;
-					 */
-					v = (double)voltages_acc[c] * 0.00488;
-					batt_v[c] = v;
-					voltages_acc[c] = 0;
-					printf("%4.3fV ", v / 100);
-				}
-				printf("count %lu\n", pac_acccnt.acccnt_count);
-			}
-			if (counter_1hz == 1) {
-				/* get new values and reset accumulator */
+				 * get new values in registers and reset
+				  * accumulator. Also freeze software voltage
+				  * accumulator.
+				  */
 				if (i2c_writecmd(PAC_I2C_ADDR,
 				    PAC_REFRESH) == 0)
 					printf("PAC_REFRESH fail\n");
-			} else {
-				/* just get new values */
+				for (c = 0; c < 4; c++) {
+					voltages_acc[c] = voltages_acc_cur[c];
+					voltages_acc_cur[c] = 0;
+				}
+				SIDINC(sid);
+				break;
+			case 5:
+				read_pac_channel();
+				/* FALLTHROUGH */
+			case 4:
+			case 3:
+			case 2:
+				send_batt_status(counter_1hz - 2);
+				/* FALLTHROUGH */
+			default:
+				/* get new values for next voltage read */
 				if (i2c_writecmd(PAC_I2C_ADDR,
 				    PAC_REFRESH_V) == 0)
 					printf("PAC_REFRESH_V fail\n");
 			}
+
 			if (counter_1hz == 0) {
 				counter_1hz = 10;
 				LEDBATT_G = 1;
