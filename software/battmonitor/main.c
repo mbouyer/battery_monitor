@@ -52,8 +52,8 @@ unsigned int timer0_read(void);
 #define TIMER0_5MS 48
 #define TIMER0_1MS 10
 
-#define LEDBATT_G LATCbits.LATC0
-#define LEDBATT_R LATCbits.LATC1
+#define LEDBATT_R LATCbits.LATC0
+#define LEDBATT_G LATCbits.LATC1
 
 #define NDOWN LATCbits.LATC7
 #define NCANOK PORTCbits.RC2
