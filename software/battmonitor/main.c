@@ -56,7 +56,7 @@ unsigned int timer0_read(void);
 #define LEDBATT_R LATCbits.LATC1
 
 #define NDOWN LATCbits.LATC7
-#define NCANOK LATCbits.LATC2
+#define NCANOK PORTCbits.RC2
 
 static char counter_10hz;
 static char counter_1hz;
@@ -101,6 +101,9 @@ adctotemp(void)
 static void
 send_batt_status(char c)
 {
+	if (nmea2000_status != NMEA2000_S_OK)
+		return;
+
 	struct nmea2000_battery_status_data *data = (void *)&nmea2000_data[0];
 
 	if ((pac_ctrl.ctrl_chan_dis & (8 >> c)) != 0)
@@ -258,7 +261,7 @@ read_pac_channel(void)
 		pac_acccnt.acccnt_count = 0;
 		return;
 	} 
-	printf("\ncount %lu", pac_acccnt.acccnt_count);
+	printf("\n %d count %lu", NCANOK, pac_acccnt.acccnt_count);
 
 	for (c = 0; c < 4; c++) {
 		if ((pac_ctrl.ctrl_chan_dis & (8 >> c)) != 0)
@@ -517,7 +520,10 @@ again:
 		if (C1INTLbits.RXIF) {
 			nmea2000_receive();
 		}
-		if (nmea2000_status != NMEA2000_S_OK) {
+		if (NCANOK) {
+			nmea2000_status = NMEA2000_S_ABORT;
+			poll_count = timer0_read();;
+		} else if (nmea2000_status != NMEA2000_S_OK) {
 			uint16_t ticks, tmrv;
 
 			tmrv = timer0_read();
@@ -527,7 +533,7 @@ again:
 				nmea2000_poll(ticks / TIMER0_1MS);
 			}
 			if (nmea2000_status == NMEA2000_S_OK) {
-				printf("new addr %d %d\n", nmea2000_addr, ticks);
+				printf("new addr %d\n", nmea2000_addr);
 			}
 		}
 		if (softintrs.bits.int_10hz) {
@@ -587,7 +593,7 @@ again:
 			} else {
 				LEDBATT_G = 0;
 			}
-			if (nmea2000_status == NMEA2000_S_OK) {
+			if (!NCANOK && nmea2000_status == NMEA2000_S_OK) {
 				uint16_t ticks, tmrv;
 
 				tmrv = timer0_read();
