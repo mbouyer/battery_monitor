@@ -79,24 +79,21 @@ uint16_t batt_temp[4];
 static int32_t voltages_acc[4];
 pac_ctrl_t pac_ctrl;
 
-#if 0
 static void
-adctotemp(void)
+adctotemp(unsigned char c)
 {
 	char i;
 	for (i = 1; temps[i].val != 0; i++) {
 		if (a2d_acc > temps[i].val) {
-			batt_temp = temps[i - 1].temp -
+			batt_temp[c] = temps[i - 1].temp -
 			((temps[i - 1].temp - temps[i].temp)  /
 		         (temps[i - 1].val - temps[i].val)  * 
 			 (temps[i - 1].val - a2d_acc));
 			return;
 		}
 	} 
-	batt_temp = 0xffff;
+	batt_temp[c] = 0xffff;
 }
-
-#endif
 
 static void
 send_batt_status(char c)
@@ -329,7 +326,7 @@ main(void)
 	PMD1 = 0xfe; /* keep timer0 */
 	PMD2 = 0x02; /* keep can module, TU16A */
 #endif
-	PMD3 = 0xff;
+	PMD3 = 0xdf; /* keep ADC */
 	PMD4 = 0xff;
 	PMD5 = 0xff;
 	PMD6 = 0xf6; /* keep UART1 and I2C */
@@ -348,6 +345,14 @@ main(void)
 	LATBbits.LATB2 = 1; /* output value when idle */
 	TRISBbits.TRISB2 = 0;
 	RB2PPS = 0x46;
+
+	LATCbits.LATC5 = TRISCbits.TRISC5 = 0; /* IO1 */
+	LATBbits.LATB4 = TRISBbits.TRISB4 = 0; /* IO2 */
+	LATBbits.LATB5 = TRISBbits.TRISB5 = 0; /* IO3 */
+
+	ANSELA = 0x13; /* RA0, RA1 and RA4 analog */
+	LATA = 0;
+	TRISA = 0xD3; /* RA2, RA3, RA5 as outpout */
 
 	/* configure watchdog timer for 2s */
 	WDTCON0 = 0x16;
@@ -435,6 +440,19 @@ main(void)
 
 	/* enable watchdog */
 	WDTCON0bits.SEN = 1;
+
+	/* set up ADC */
+	PIR1bits.ADIF = 0;
+	ADCON0 = 0x4; /* right-justified */
+	ADCON1 = 0; /* no cap */
+	ADCON2 = 0; /* basic mode */
+	ADCON3 = 0; /* basic mode */
+	ADCLK = 7; /* Fosc/16 */
+	ADREF = 0;  /* vref = VDD */
+	ADPCH = 0; /* channel 0 */
+	ADACQH = 0;
+	ADACQL = 20; /* 20Tad Aq */
+	ADCON0bits.ADON = 1;
 
 	c = 0;
 	NDOWN = 1;
@@ -536,6 +554,36 @@ again:
 				printf("new addr %d\n", nmea2000_addr);
 			}
 		}
+		if (PIR1bits.ADIF) {
+			PIR1bits.ADIF = 0;
+			a2d_acc = ((unsigned int)ADRESH << 8) | ADRESL;
+			switch (ADPCH) {
+			case 0:
+				/* channel 0: NTC */
+				adctotemp(0);
+				ADCON0bits.ADON = 0;
+				ADPCH = 1;
+				ADCON0bits.ADON = 1;
+				break;
+			case 1:
+				/* channel 1: NTC */
+				adctotemp(1);
+				ADCON0bits.ADON = 0;
+				ADPCH = 4;
+				ADCON0bits.ADON = 1;
+				break;
+			case 4:
+				/* channel 4: NTC */
+				adctotemp(2);
+				ADCON0bits.ADON = 0;
+				ADPCH = 0;
+				/* don't set ADON, will do on next second */
+				break;
+			default:
+				printf("unknown channel 0x%x\n", ADCON0);
+			}
+		}
+
 		if (softintrs.bits.int_10hz) {
 			softintrs.bits.int_10hz = 0;
 			/* read voltage values */
@@ -590,9 +638,12 @@ again:
 				if (seconds == 10) {
 					seconds = 0;
 				}
+				ADCON0bits.ADON = 1; /* start a new cycle */
 			} else {
 				LEDBATT_G = 0;
 			}
+			if (ADCON0bits.ADON)
+				ADCON0bits.GO = 1;
 			if (!NCANOK && nmea2000_status == NMEA2000_S_OK) {
 				uint16_t ticks, tmrv;
 

@@ -30,7 +30,7 @@
  * It has to be in its own file because of sdcc bug 
  */
 
-#include <stdlib.h> 
+#include <xc.h> 
 #include "ntc_tab.h"
 const struct temp_val const temps[] = {
 	{
