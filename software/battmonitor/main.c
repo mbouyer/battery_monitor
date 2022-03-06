@@ -276,11 +276,24 @@ read_pac_channel(void)
 		}
 		/* batt_i = acc_value * 0.00075 * 100 */
 		v = (double)acc_value * 0.075 / pac_acccnt.acccnt_count;
+		/* adjust with calibration data */
+		switch(c) {
+		case 0:
+			v = v * 0.988689144013892;
+			break;
+		case 1:
+			v = v * 1.00930129713152;
+			break;
+		case 2:
+			v = v * 4.06331342566096;
+			break;
+		}
 		batt_i[c] = v + 0.5;
 		printf(" %d %4.4fA", c, v / 100);
 		/* volt = vbus * 0.000488 */
 		/* batt_v = voltages_acc * 0.000488 * 100 / 10; */
-		v = (double)voltages_acc[c] * 0.00488;
+		/* adjust by 0.99955132 from calibration data */
+		v = (double)voltages_acc[c] * 0.0048778104;
 		batt_v[c] = v + 0.5;
 		printf(" %4.3fV", v / 100);
 	}
