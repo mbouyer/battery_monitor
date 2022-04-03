@@ -60,7 +60,7 @@ unsigned int timer0_read(void);
 
 static char counter_10hz;
 static char counter_1hz;
-static char seconds;
+static uint16_t seconds;
 static volatile union softintrs {
 	struct softintrs_bits {
 		char int_10hz : 1;	/* 0.1s timer */
@@ -78,6 +78,250 @@ uint16_t batt_temp[4];
 
 static int32_t voltages_acc[4];
 pac_ctrl_t pac_ctrl;
+
+/* for journal */
+static int64_t l600_current_acc[4];
+static __uint24 l600_current_count;
+static uint32_t l600_voltages_acc[4];
+
+/*
+ * journal data structure (record every 10mn)
+ * For current, in mA: 18 bits, including sign
+ * voltage, max 20.47V needs 11 bits
+ * temperature -40C to 60C: 8 bits (K - 233)
+ * valid: 1bit
+ * instance: 2 bits
+ =>  total 40 bits, or 5 bytes
+ 51 entries per block of 256 bytes: 1 bytes free (for block flags)
+ In 32k flash, 128 blocks -> 6528 entries, or 272 hours (11 days)
+   with 4 channels active
+ */
+
+union log_entry {
+	uint8_t data[5];
+	struct {
+		uint8_t temp;
+		uint8_t u_low; /* low bits of voltage */
+		uint16_t i_low; /* low bits current */
+		uint8_t u_high : 3; /* high bits of voltage */
+		uint8_t nvalid : 1; /* 0 = entry valid */
+		uint8_t i_high: 2; /* high bits of current */
+		uint8_t instance: 2; /* batt instance */
+	} s;
+};
+
+#define LOG_ENTRIES 51
+
+struct log_block {
+	union log_entry b_entry[LOG_ENTRIES];
+	uint8_t b_flags;
+#define B_FILL_STAT 0x03
+#define B_FILL_FREE 0x03
+#define B_FILL_PART 0x01
+#define B_FILL_FULL 0x00
+};
+
+#define LOG_BLOCKS ((uint8_t)128)
+#define LOG_BLOCKS_MASK (LOG_BLOCKS - 1)
+
+extern const struct log_block battlog[LOG_BLOCKS] __at(0x18000);
+
+extern struct log_block curlog __at(0x3700);
+
+/* current log entry (to be updated) */
+uint8_t log_cblk;
+uint8_t log_centry;
+
+static inline void
+utolog(uint16_t u, union log_entry *e)
+{
+	e->s.u_low = u & 0xff;
+	e->s.u_high = (u >> 8) & 0x7;
+}
+
+static inline uint16_t
+logtou(union log_entry *e)
+{
+	uint16_t u;
+
+	u = e->s.u_low;
+	u |= (uint16_t)(e->s.u_high & 0x7) << 8;
+	return u;
+}
+
+static inline void
+itolog(int64_t i, union log_entry *e)
+{
+	e->s.i_low = i & 0xffff;
+	e->s.i_high = (i >> 16) & 0x3;
+}
+
+static inline int32_t
+logtoi(union log_entry *e)
+{
+	int32_t i;
+	i = e->s.i_low;
+	i |= (uint32_t)(e->s.i_high & 0x3) << 16;
+	if (e->s.i_high & 0x2) {
+		i |= 0xfffe0000;
+	}
+	return i;
+}
+
+static void
+page_erase(__uint24 addr)
+{
+	uint8_t err = 0;
+
+	printf("erase 0x%lx\n", (uint32_t)addr);
+
+	NVMADR = addr;
+	NVMCON1bits.CMD = 0x06;
+	INTCON0bits.GIE = 0;
+
+	NVMLOCK = 0x55;
+	NVMLOCK = 0xAA;
+	NVMCON0bits.GO = 1;
+
+	while (NVMCON0bits.GO)
+		; /* wait */
+
+	if (NVMCON1bits.WRERR) {
+		err++;
+	}
+	NVMCON1bits.CMD = 0;
+	INTCON0bits.GIE = 1;
+	if (err) {
+		printf("erase 0x%lx failed\n", (uint32_t)addr);
+	}
+}
+
+static void
+page_read(__uint24 addr)
+{
+	uint8_t err = 0;
+
+	printf("read 0x%lx\n", (uint32_t)addr);
+
+	NVMADR = addr;
+	NVMCON1bits.CMD = 0x02;
+	NVMCON0bits.GO = 1;
+
+	while (NVMCON0bits.GO)
+		; /* wait */
+
+	NVMCON1bits.CMD = 0;
+}
+
+static void
+page_write(__uint24 addr)
+{
+	uint8_t err = 0;
+
+	printf("write 0x%lx\n", (uint32_t)addr);
+
+	NVMADR = addr;
+	NVMCON1bits.CMD = 0x05;
+	INTCON0bits.GIE = 0;
+
+	NVMLOCK = 0x55;
+	NVMLOCK = 0xAA;
+	NVMCON0bits.GO = 1;
+
+	while (NVMCON0bits.GO)
+		; /* wait */
+
+	if (NVMCON1bits.WRERR) {
+		err++;
+	}
+	NVMCON1bits.CMD = 0;
+	INTCON0bits.GIE = 1;
+	if (err) {
+		printf("write 0x%lx failed\n", (uint32_t)addr);
+	}
+}
+
+static void
+next_log_entry(void)
+{
+	printf("write log entry %d/%d\n", log_cblk, log_centry);
+	/* mark entry as valid */
+	curlog.b_entry[log_centry].s.nvalid = 0;
+	curlog.b_flags = 0xfc | B_FILL_PART;
+	log_centry++;
+	if (log_centry == LOG_ENTRIES) {
+		/* next block */
+		/* write current block */
+		curlog.b_flags = 0xfc | B_FILL_FULL;
+		page_write(&battlog[log_cblk]);
+		/* point to next block */
+		log_cblk = (log_cblk + 1) & LOG_BLOCKS_MASK;
+		log_centry = 0;
+		/* erase and load new block */
+		page_erase(&battlog[log_cblk]);
+		page_read(&battlog[log_cblk]);
+	} else {
+		/* update current block */
+		page_write(&battlog[log_cblk]);
+	}
+}
+
+static void
+log_erase(void)
+{
+	for (uint8_t c = 0; c < LOG_BLOCKS; c++) {
+		page_erase(&battlog[c]);
+	}
+}
+
+static void
+update_log(void)
+{
+	char c;
+	double v;
+	int32_t v_i;
+
+	for (c = 0; c < 4; c++) {
+		printf("log entry %d/%d ", log_cblk, log_centry);
+		if ((pac_ctrl.ctrl_chan_dis & (8 >> c)) != 0)
+			continue;
+		/* batt_i = acc_value * 0.00075 * 1000 */
+		v = (double)l600_current_acc[c] * 0.75 / l600_current_count;
+		/* adjust with calibration data */
+		switch(c) {
+		case 0:
+			v = v * 0.988689144013892;
+			break;
+		case 1:
+			v = v * 1.00930129713152;
+			break;
+		case 2:
+			v = v * 4.06331342566096;
+			break;
+		}
+		v_i = v + 0.5;
+		printf(" %d %4.4fA %ld", c, v / 1000, v_i);
+		itolog(v_i, &curlog.b_entry[log_centry]);
+		/* volt = vbus * 0.000488 */
+		/* batt_v = voltages_acc * 0.000488 * 100 / 6000; */
+		/* adjust by 0.99955132 from calibration data */
+		v = (double)l600_voltages_acc[c] * 0.000008129684;
+		v_i = v + 0.5;
+		printf(" %4.3fV %ld", v / 100, v_i);
+		utolog(v_i, &curlog.b_entry[log_centry]);
+		curlog.b_entry[log_centry].s.instance = c;
+		if (batt_temp[c] == 0xff) {
+			curlog.b_entry[log_centry].s.temp = 0xff;
+		} else {
+			curlog.b_entry[log_centry].s.temp =
+			    (uint8_t)(batt_temp[c] - 23300);
+		}
+		next_log_entry();
+		l600_current_acc[c] = 0;
+		l600_voltages_acc[c] = 0;
+	}
+	l600_current_count = 0;
+}
 
 static void
 adctotemp(unsigned char c)
@@ -259,6 +503,7 @@ read_pac_channel(void)
 		return;
 	} 
 	printf("\n %d count %lu", NCANOK, pac_acccnt.acccnt_count);
+	l600_current_count += pac_acccnt.acccnt_count;
 
 	for (c = 0; c < 4; c++) {
 		if ((pac_ctrl.ctrl_chan_dis & (8 >> c)) != 0)
@@ -274,6 +519,7 @@ read_pac_channel(void)
 			/* adjust negative value */
 			acc_value |= 0xff00000000000000;
 		}
+		l600_current_acc[c] += acc_value;
 		/* batt_i = acc_value * 0.00075 * 100 */
 		v = (double)acc_value * 0.075 / pac_acccnt.acccnt_count;
 		/* adjust with calibration data */
@@ -309,6 +555,7 @@ main(void)
 	static unsigned int poll_count;
 	uint16_t t0;
 	static int32_t voltages_acc_cur[4];
+	uint8_t new_boot;
 
 
 	devid = 0;
@@ -381,7 +628,10 @@ main(void)
 
 	for (c = 0; c < 4; c++) {
 		voltages_acc_cur[c] = 0;
+		l600_current_acc[c] = 0;
+		l600_voltages_acc[c] = 0;
 	}
+	l600_current_count = 0;
 
 	IPR1 = 0;
 	IPR2 = 0;
@@ -447,7 +697,7 @@ main(void)
 	printf("hello user_id 0x%lx devid 0x%x revid 0x%x\n", nmea2000_user_id, devid, revid);
 	LEDBATT_R = 0;
 
-	printf("n2k_init");
+	printf("n2k_init\n");
 	nmea2000_init();
 	poll_count = timer0_read();
 
@@ -477,7 +727,55 @@ main(void)
 			; /* wait */
 		}
 	}
-	
+
+#if 0
+	log_erase();
+#endif
+
+	/* look for current block */
+	printf("blocks");
+	for (c = 0; c < LOG_BLOCKS; c++) {
+		printf(" 0x%x", battlog[c].b_flags);
+		if ((battlog[c].b_flags & B_FILL_STAT) == B_FILL_PART) {
+			/* found it */
+			log_cblk = c;
+			break;
+		}
+		if ((battlog[c].b_flags & B_FILL_STAT) == B_FILL_FULL) {
+			uint8_t c2 = (c + 1) & LOG_BLOCKS_MASK;
+			if (battlog[c2].b_flags & B_FILL_STAT == B_FILL_FREE) {
+				/* stopped just at boundary */
+				log_cblk = c2;
+				break;
+			}
+		}
+	}
+	printf("\n");
+	if (c == LOG_BLOCKS) {
+		/* log empty, start a 0 */
+		printf("log empty\n");
+		log_cblk = 0;
+	}
+	/* look for first free entry in block */
+	for (c = 0; c < LOG_ENTRIES; c++) {
+		if (battlog[log_cblk].b_entry[c].s.nvalid == 1) {
+			/* first free entry */
+			log_centry = c;
+			break;
+		}
+	}
+	if (c == LOG_ENTRIES) {
+		/* log corrupted, reset */
+		printf("non-full block with no free entry: reset log\n");
+		log_erase();
+		log_cblk = log_centry = 0;
+	}
+	page_read(&battlog[log_cblk]);
+
+	memset(&curlog.b_entry[log_centry], 0, sizeof(union log_entry));
+
+	next_log_entry();
+
 	LEDBATT_R = LEDBATT_G = 0;
 
 again:
@@ -625,6 +923,8 @@ again:
 					printf("PAC_REFRESH fail\n");
 				for (c = 0; c < 4; c++) {
 					voltages_acc[c] = voltages_acc_cur[c];
+					l600_voltages_acc[c] +=
+					    voltages_acc_cur[c];
 					voltages_acc_cur[c] = 0;
 				}
 				SIDINC(sid);
@@ -648,7 +948,8 @@ again:
 				counter_1hz = 10;
 				LEDBATT_G = 1;
 				seconds++;
-				if (seconds == 10) {
+				if (seconds == 600) {
+					update_log();
 					seconds = 0;
 				}
 				ADCON0bits.ADON = 1; /* start a new cycle */
