@@ -204,11 +204,17 @@ void wxbm::setStatus(int addr, int group, const wxString &mode)
 
 void wxbm::setBatt(int inst, double v, double i, double t, bool valid)
 {
-	if (inst < 0 || inst >= NINST)
-		return;
-	frame->volts[inst] = v;
-	frame->amps[inst] = i;
-	frame->temp[inst] = t;
-	frame->instV[inst] = valid;
+	if (valid) {
+		if (inst < 0 || inst >= NINST)
+			return;
+		frame->volts[inst] = v;
+		frame->amps[inst] = i;
+		frame->temp[inst] = t;
+		frame->instV[inst] = true;
+	} else {
+		for (int i = 0; i < NINST; i++) {
+			frame->instV[i] = false;
+		}
+	}
 	frame->wake(bmFrame::dataup_t::data_values);
 }
