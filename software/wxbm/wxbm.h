@@ -50,4 +50,6 @@ class wxbm : public wxApp
 
 extern wxbm *wxp;
 
+void n2k_set_bm_address(int addr);
+
 #endif /* _WXbm_H_ */

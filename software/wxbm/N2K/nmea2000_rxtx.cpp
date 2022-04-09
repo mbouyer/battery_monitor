@@ -160,13 +160,15 @@ bool nmea2000_fastframe_tx::send(int sock)
 
 	for (i = 0, n = 0; i < fastlen; n++) {
 		frame->data[0] = (ident << 5) | n ;
+		int remain = fastlen - i;
 		if (n == 0) {
+			if (remain > 6)
+				remain = 6;
 			frame->data[1] = fastlen;
-			memcpy(&frame->data[2], &data[i], 6);
-			i += 6;
-			frame->can_dlc = 8;
+			memcpy(&frame->data[2], &data[i], remain);
+			i += remain;
+			frame->can_dlc = remain + 2;
 		} else {
-			int remain = fastlen - i;
 			if (remain > 7)
 				remain = 7;
 			memcpy(&frame->data[1], &data[i], remain);

@@ -107,6 +107,7 @@ SET(N2KSRCS
     N2K/NMEA2000PropertiesDialog.cpp
     N2K/nmea2000_rxtx.cpp
     N2K/nmea2000_energy_rx.cpp
+    N2K/nmea2000_log.cpp
 )
 
 SET(SRCS

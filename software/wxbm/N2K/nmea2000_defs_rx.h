@@ -55,6 +55,7 @@ class nmea2000_battery_status_rx : public nmea2000_frame_rx {
 	void tick(void);
     private:
 	struct timeval last_rx;
+	int addr;
 };
 
 class nmea2000_rx {

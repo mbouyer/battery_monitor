@@ -119,6 +119,7 @@ struct log_block {
 #define B_FILL_FREE 0x03
 #define B_FILL_PART 0x01
 #define B_FILL_FULL 0x00
+#define B_FILL_GEN  0xfc
 };
 
 #define LOG_BLOCKS ((uint8_t)128)
@@ -131,6 +132,19 @@ extern struct log_block curlog __at(0x3700);
 /* current log entry (to be updated) */
 uint8_t log_cblk;
 uint8_t log_centry;
+
+/* log requests/replies */
+uint8_t logreq_len;
+uint8_t logreq_id; /* current id for fast frame */
+
+union __packed {
+	uint8_t _data[233 + 8];
+	struct private_log_request rq;
+	struct private_log_reply rp;
+	struct private_log_error er;
+	struct private_log_reset rst;
+} private_log_cmd;
+static unsigned char fastid;
 
 static inline void
 utolog(uint16_t u, union log_entry *e)
@@ -272,6 +286,7 @@ log_erase(void)
 	for (uint8_t c = 0; c < LOG_BLOCKS; c++) {
 		page_erase(&battlog[c]);
 	}
+	log_cblk = log_centry = 0;
 }
 
 static void
@@ -321,6 +336,111 @@ update_log(void)
 		l600_voltages_acc[c] = 0;
 	}
 	l600_current_count = 0;
+}
+
+static void
+send_log_block(uint8_t sid, uint8_t page)
+{
+	uint8_t c, i, j, r = 0;
+
+	printf("send page %d\n", page);
+
+	c = 0;
+	while (c < LOG_ENTRIES && r == 0) {
+		fastid = (fastid + 1) & 0x7;
+		msg.id.id = 0;
+		msg.id.iso_pg = (PRIVATE_LOG >> 8) & 0xff;
+		msg.id.daddr = rid.saddr;
+		msg.id.priority = NMEA2000_PRIORITY_ACK;
+		msg.dlc = sizeof(struct private_log_reply);
+		private_log_cmd.rp.cmd = PRIVATE_LOG_REPLY;
+		msg.data = &private_log_cmd.rp;
+		private_log_cmd.rp.sid = sid;
+		private_log_cmd.rp.idx =
+		   ((uint16_t)(battlog[page].b_flags & B_FILL_GEN) << 8) | page;
+		if (c > LOG_ENTRIES / 2) 
+			private_log_cmd.rp.idx |= 0x100;
+		for (i = 0; c < LOG_ENTRIES; c++) {
+			if (battlog[page].b_entry[c].s.nvalid == 1) {
+				printf("page %d entry %d !valid\n", page, c);
+				r++;
+				break;
+			}
+			for (j = 0; j < sizeof(union log_entry); j++) {
+				private_log_cmd.rp.data[i] =
+				    battlog[page].b_entry[c].data[j];
+				i++; msg.dlc++;
+			}
+			if (msg.dlc >= NMEA2000_DATA_FASTLENGTH - sizeof(union log_entry))
+				break;
+		}
+		printf("send fast len %d/%d, %d entries\n",
+		    msg.dlc, i, c);
+		if (! nmea2000_send_fast_frame(&msg, fastid))
+			printf("send PRIVATE_LOG_REPLY failed\n");
+	}
+}
+
+static void
+send_log_error(uint8_t sid, uint8_t code)
+{
+	fastid = (fastid + 1) & 0x7;
+	msg.id.id = 0;
+	msg.id.iso_pg = (PRIVATE_LOG >> 8) & 0xff;
+	msg.id.daddr = rid.saddr;
+	msg.id.priority = NMEA2000_PRIORITY_ACK;
+	msg.dlc = sizeof(struct private_log_error);
+	msg.data = &private_log_cmd.er;
+	private_log_cmd.er.cmd = PRIVATE_LOG_ERROR;
+	private_log_cmd.er.sid = sid;
+	private_log_cmd.er.error = code;
+	if (! nmea2000_send_fast_frame(&msg, fastid))
+		printf("send PRIVATE_LOG_ERROR failed\n");
+}
+
+static void
+handle_log_request(uint8_t cmd) {
+	uint8_t gen = (private_log_cmd.rq.idx & 0xff00) >> 8;
+	uint8_t page = private_log_cmd.rq.idx & 0xff;
+	uint8_t sid = private_log_cmd.rq.sid;
+	uint8_t i;
+	printf("log request sid %d gen %d page %d\n", sid, gen, page);
+
+	if (cmd == PRIVATE_LOG_REQUEST_FIRST) {
+		/* look for first log entry - usually next page */
+		for (i = 0, page = (log_cblk + 1) & LOG_BLOCKS_MASK;
+		    i < LOG_BLOCKS; 
+		     page = (page + 1) & LOG_BLOCKS_MASK, i++) {
+			if ((battlog[page].b_flags & B_FILL_STAT) !=
+			    B_FILL_FREE)
+				break;
+		}
+		if (i == LOG_BLOCKS) {
+			/* all entries free (e.g. just after a reset */
+			send_log_error(sid, PRIVATE_LOG_ERROR_NOTFOUND);
+			return;
+		}
+		send_log_block(sid, page);
+		return;
+	}
+	/* look for gen/page */
+	if ((battlog[page].b_flags & B_FILL_GEN) != gen) {
+		send_log_error(sid, PRIVATE_LOG_ERROR_NOTFOUND);
+		return;
+	}
+	if (cmd == PRIVATE_LOG_REQUEST) {
+		/* just send this page */
+		send_log_block(sid, page);
+		return;
+	}
+	/* send next page, if there is one */
+	if (page == log_cblk) {
+		/* this is the last page */
+		send_log_error(sid, PRIVATE_LOG_ERROR_LAST);
+		return;
+	}
+	page = (page + 1) & LOG_BLOCKS_MASK;
+	send_log_block(sid, page);
 }
 
 static void
@@ -464,20 +584,62 @@ user_receive()
 	if (rid.iso_pg > 239)
 		pgn |= rid.daddr;
 
-#if 0
 	switch(pgn) {
-	case PRIVATE_COMMAND_STATUS:
-	{
-		struct private_command_status *command_status = (void *)rdata;
-		last_command_data = timer0_read();
-		nmea2000_command_address = rid.saddr;
-		command_received_heading = command_status->heading;
-		received_auto_mode = command_status->auto_mode;
-		received_param_slot = command_status->params_slot;
+	case PRIVATE_LOG:
+	    {
+		unsigned char idx = (rdata[0] & FASTPACKET_IDX_MASK);
+		unsigned char id =  (rdata[0] & FASTPACKET_ID_MASK);
+		char i, j;
+
+		if (idx == 0) {
+			/* new head packet */
+			logreq_id = id;
+			logreq_len = rdata[1];
+			for (i = 0; i < 6 && logreq_len > 0; i++) {  
+				private_log_cmd._data[i] = rdata[i+2];
+				logreq_len--;
+			}       
+		} else if (id == logreq_id) {
+			j = 1;
+			/* i = 6 + (idx - 1) * 7 : i = idx * 7 - 1 */   
+			for (i = idx * 7 - 1, j = 1;
+			    i < sizeof(private_log_cmd) && j < 8 &&
+			        logreq_len > 0;
+			    i++, j++) {
+				private_log_cmd._data[i] = rdata[j];  
+				logreq_len--;
+			}
+		}
+
+		if (logreq_len == 0) {
+			switch(private_log_cmd.rq.cmd) {
+			case PRIVATE_LOG_REQUEST:
+			case PRIVATE_LOG_REQUEST_FIRST:
+			case PRIVATE_LOG_REQUEST_NEXT:
+				handle_log_request(private_log_cmd.rq.cmd);
+				break;
+			case PRIVATE_LOG_RESET:
+				printf("log reset from %d ", rid.saddr);
+				if (rid.daddr != nmea2000_addr) {
+					printf("ignored, wrong daddr %d\n",
+					    rid.daddr);
+				} else if (private_log_cmd.rst.magic != 
+				    PRIVATE_LOG_RESET_MAGIC) {
+					printf("ignored, wrong magic 0x%x\n",
+					    private_log_cmd.rst.magic);
+				} else {
+					log_erase();
+					printf("done\n");
+				}
+				break;
+			default:
+				printf("wrong log cmd %d from %d\n",
+				    private_log_cmd.rq.cmd, rid.saddr);
+			}
+		}
 		break;
+	    }
 	}
-	}
-#endif
 }
 
 void
@@ -743,7 +905,8 @@ main(void)
 		}
 		if ((battlog[c].b_flags & B_FILL_STAT) == B_FILL_FULL) {
 			uint8_t c2 = (c + 1) & LOG_BLOCKS_MASK;
-			if (battlog[c2].b_flags & B_FILL_STAT == B_FILL_FREE) {
+			if ((battlog[c2].b_flags & B_FILL_STAT)
+			    == B_FILL_FREE) {
 				/* stopped just at boundary */
 				log_cblk = c2;
 				break;
@@ -768,7 +931,6 @@ main(void)
 		/* log corrupted, reset */
 		printf("non-full block with no free entry: reset log\n");
 		log_erase();
-		log_cblk = log_centry = 0;
 	}
 	page_read(&battlog[log_cblk]);
 

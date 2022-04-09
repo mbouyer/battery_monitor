@@ -103,19 +103,14 @@ class iso_address_claim_tx : public nmea2000_frame_tx {
 	};
 };
 
-class private_command_factors_tx : public nmea2000_frame_tx {
+class private_log_tx : public nmea2000_fastframe_tx {
     public:
-	inline private_command_factors_tx() : nmea2000_frame_tx("Private command factors", true, PRIVATE_COMMAND_FACTORS, NMEA2000_PRIORITY_INFO, 8) { }
+	    inline private_log_tx() : nmea2000_fastframe_tx("private log", true, PRIVATE_LOG, NMEA2000_PRIORITY_INFO, 4) { };
 
-	void update(int, int[NFACTORS]);
+	    bool sendreq(uint8_t cmd, uint8_t sid, uint16_t idx);
+	    bool sendreset(uint8_t sid);
 };
 
-class private_command_factors_request_tx : public nmea2000_frame_tx {
-    public:
-	inline private_command_factors_request_tx() : nmea2000_frame_tx("Private command factors request", true, PRIVATE_COMMAND_FACTORS_REQUEST, NMEA2000_PRIORITY_INFO, 1) { }
-
-	void update(int);
-};
 
 class nmea2000_tx {
     public:
@@ -131,11 +126,13 @@ class nmea2000_tx {
 	void setsrc(int);
 
 	iso_address_claim_tx iso_address_claim;
+	private_log_tx private_log;
 
     private:
 
-	std::array<nmea2000_frame_tx *,1> frames_tx = { {
+	std::array<nmea2000_frame_tx *,2> frames_tx = { {
 		&iso_address_claim,
+		&private_log,
 	} };
 	uint8_t sid;
 };

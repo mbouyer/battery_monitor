@@ -37,6 +37,12 @@ bool nmea2000_battery_status_rx::handle(const nmea2000_frame &f)
 	int temp = f.frame2int16(5);
 	gettimeofday(&last_rx, NULL);
 
+	if (addr != f.getsrc()) {
+		n2k_set_bm_address(f.getsrc());
+		addr = f.getsrc(); 
+	}
+
+
 	wxp->setBatt(instance, volt / 100.0, current / 1000.0,
 	    temp / 100.0 - 273.15, true);
 	return true;
