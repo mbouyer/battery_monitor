@@ -42,6 +42,8 @@ class wxbm : public wxApp
 	void setBmAddress(int);
 	void addLogEntry(int sid, double volts, double amps,
 	    int temp, int instance, int idx, bool last);
+	void logError(int sid, int err);
+	void logTick(void);
   private:
 	bmFrame *frame;
 	bmLog *bmlog;

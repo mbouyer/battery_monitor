@@ -49,6 +49,8 @@ class bmLog: public wxFrame
 	void address(int);
 	void addLogEntry(int sid, double volts, double amps,
 		       int temp, int instance, int idx, bool last);
+	void logError(int sid, int err);
+	void tick(void);
   private:
 	wxFlexGridSizer *mainsizer, *bmsizer;
 	private_log_tx *log_tx;
@@ -58,4 +60,20 @@ class bmLog: public wxFrame
 	wxStaticText *Ttemp[NINST];
 	struct bm_log_entry log_entries[LOG_ENTRIES];
 	int cur_log_entry;
+	struct timeval last_ev;
+	struct log_req {
+		int cmd;
+		int sid;
+		int idx;
+	} log_req;
+	enum {
+		LOG_IDLE,
+		LOG_REQ,
+		LOG_WAIT_BLOCK,
+	} log_req_state;
+	inline void sendreq(void) {
+		log_tx->sendreq(log_req.cmd, log_req.sid, log_req.idx);
+		gettimeofday(&last_ev, NULL);
+		log_req_state = LOG_WAIT_BLOCK;
+	};
 };

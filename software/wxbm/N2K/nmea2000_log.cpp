@@ -99,10 +99,17 @@ nmea2000_private_log_rx::fast_handle(const nmea2000_frame &f)
 		{
 		uint8_t err = f.frame2uint8(2);
 		printf("log_rx error %d sid %d\n", err, sid);
+		wxp->logError(sid, err);
 		return true;
 		}
 	default:
 		printf("private log cmd %d sid %d\n");
 	}
 	return false;
+}
+
+void
+nmea2000_private_log_rx::tick()
+{
+	wxp->logTick();
 }

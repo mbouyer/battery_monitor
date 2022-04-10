@@ -228,10 +228,21 @@ wxbm::setBmAddress(int a)
 	bmlog->address(a);
 }
 
-
 void
 wxbm::addLogEntry(int sid, double volts, double amps,
                  int temp, int instance, int idx, bool last)
 {
 	bmlog->addLogEntry(sid, volts, amps, temp, instance, idx, last);
+}
+
+void
+wxbm::logError(int sid, int err)
+{
+	bmlog->logError(sid, err);
+}
+
+void
+wxbm::logTick(void)
+{
+	bmlog->tick();
 }

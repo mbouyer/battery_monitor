@@ -35,6 +35,7 @@ bmLog::bmLog(wxWindow* parent)
 	: wxFrame(parent, wxID_ANY, _T("bmLog"))
 {
 	cur_log_entry = 0;
+	log_req_state = LOG_IDLE;
 	log_tx = (private_log_tx *)nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(PRIVATE_LOG));
 	bmsizer = new wxFlexGridSizer(4, 5, 5);
 }
@@ -42,7 +43,12 @@ bmLog::bmLog(wxWindow* parent)
 void
 bmLog::address(int a)
 {
-	log_tx->sendreq(PRIVATE_LOG_REQUEST_FIRST, 10, 0xaa15);
+	if (log_req_state == LOG_IDLE) {
+		log_req.cmd = PRIVATE_LOG_REQUEST_FIRST;
+		log_req.sid++;
+		log_req.idx = 0;
+		log_req_state = LOG_REQ;
+	}
 
 }
 
@@ -50,7 +56,10 @@ void
 bmLog::addLogEntry(int sid, double volts, double amps,
                  int temp, int instance, int idx, bool last)
 {
-	wxASSERT(cur_log_entry < LOG_ENTRIES);
+	if (log_req_state != LOG_WAIT_BLOCK || log_req.sid != sid)
+		return; /* not waiting for that */
+	wxASSERT_MSG(cur_log_entry < LOG_ENTRIES && cur_log_entry >= 0,
+	    wxString::Format("cur_log_entry %d", cur_log_entry));
 	log_entries[cur_log_entry].volts = volts;
 	log_entries[cur_log_entry].amps = amps;
 	log_entries[cur_log_entry].temp = temp;
@@ -66,6 +75,56 @@ bmLog::addLogEntry(int sid, double volts, double amps,
 			    log_entries[i].temp);
 		}
 		cur_log_entry = 0;
-		log_tx->sendreq(PRIVATE_LOG_REQUEST_NEXT, sid + 1, idx);
+		log_req.cmd = PRIVATE_LOG_REQUEST_NEXT;
+		log_req.sid++;
+		log_req.idx = idx;
+		log_req_state = LOG_REQ;
+		// sendreq();
+	} else {
+		wxASSERT_MSG(cur_log_entry < LOG_ENTRIES && cur_log_entry >= 0,
+		    wxString::Format("cur_log_entry %d", cur_log_entry));
+	}
+}
+
+void
+bmLog::logError(int sid, int err)
+{
+	if (log_req_state != LOG_WAIT_BLOCK || log_req.sid != sid)
+		return; /* not for us */
+	switch(err) {
+	case PRIVATE_LOG_ERROR_NOTFOUND:
+		printf("log idx 0x%x not found\n", log_req.idx);
+		log_req_state = LOG_IDLE;
+		break;
+	case PRIVATE_LOG_ERROR_LAST:
+		wxASSERT(log_req.cmd == PRIVATE_LOG_REQUEST_NEXT);
+		log_req_state = LOG_IDLE;
+		printf("log complete\n");
+		break;
+	}
+}
+
+void
+bmLog::tick(void)
+{
+	switch(log_req_state) {
+	case LOG_IDLE:
+		break;
+	case LOG_REQ:
+		sendreq();
+		break;
+	case LOG_WAIT_BLOCK:
+	    {
+		struct timeval now, diff;
+		gettimeofday(&now, NULL);
+		timersub(&now, &last_ev, &diff);
+		if (diff.tv_sec >= 1) {
+			/* timeout, resend last command */
+			printf("timeout cmd %d sid 0x%x idx 0x%x\n", 
+			    log_req.cmd, log_req.sid, log_req.idx);
+			sendreq();
+		}
+		break;
+	    }
 	}
 }
