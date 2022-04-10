@@ -329,7 +329,7 @@ update_log(void)
 			curlog.b_entry[log_centry].s.temp = 0xff;
 		} else {
 			curlog.b_entry[log_centry].s.temp =
-			    (uint8_t)(batt_temp[c] - 23300);
+			    (uint8_t)((batt_temp[c] - 23300) / 100);
 		}
 		next_log_entry();
 		l600_current_acc[c] = 0;
