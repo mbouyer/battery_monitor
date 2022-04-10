@@ -53,15 +53,16 @@ bool nmea2000_fastframe_rx::handle(const nmea2000_frame &f)
 	unsigned char _idx = (f.frame2uint8(0) & FASTPACKET_IDX_MASK);
 	unsigned char _id = (f.frame2uint8(0) & FASTPACKET_ID_MASK);
 
-	if (_idx == 0) {
+	if (_idx == 0 && cur_idx == -1) {
 		/* new packet */
-		ident = _id;
+		cur_id = _id;
 		framelen = len = f.frame2uint8(1);
 		for (int i = 0; i < 6 && len > 0; i++) {
 			data[i] = f.frame2uint8(i+2);
 			len--;
 		}
-	} else if (ident == _id) {
+		cur_idx = 0;
+	} else if (cur_id == _id && _idx == cur_idx + 1) {
 		int i, j;
 		/* i = 6 + (_idx - 1) * 7 : i = _idx * 7 - 1 */
 		for (i = _idx * 7 - 1, j = 1;
@@ -69,9 +70,11 @@ bool nmea2000_fastframe_rx::handle(const nmea2000_frame &f)
 			data[i] = f.frame2uint8(j);
 			len--;
 		}
+		cur_idx = _idx;
 	}
 	
 	if (len == 0) {
+		cur_idx = -1;
 		return fast_handle(*this);
 	}
 	return true;

@@ -54,16 +54,16 @@ class nmea2000_fastframe_rx : public nmea2000_frame_rx, public nmea2000_frame {
 	inline int getlen() const { return (framelen); };
     private:
 	uint8_t _userdata[223];
-	int ident;
-	int id;
+	int cur_id;
+	int cur_idx;
 	int len;
 	int framelen;
 	inline void init()
 	    {
 	      data = &_userdata[0];
-	      ident = -1;
+	      cur_id = -1;
+	      cur_idx = -1;
 	      len = 0;
-	      id = 0;
 	    }
 };
 
@@ -87,6 +87,7 @@ class nmea2000_private_log_rx : public nmea2000_fastframe_rx {
 	    nmea2000_fastframe_rx("NMEA2000 private log", true, PRIVATE_LOG) {};
 	virtual ~nmea2000_private_log_rx() {};
 	bool fast_handle(const nmea2000_frame &f);
+	void tick(void);
 };
 
 class nmea2000_rx {
