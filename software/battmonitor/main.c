@@ -358,11 +358,10 @@ send_log_block(uint8_t sid, uint8_t page)
 		private_log_cmd.rp.sid = sid;
 		private_log_cmd.rp.idx =
 		   ((uint16_t)(battlog[page].b_flags & B_FILL_GEN) << 8) | page;
-		if (c > LOG_ENTRIES / 2) 
-			private_log_cmd.rp.idx |= 0x100;
 		for (i = 0; c < LOG_ENTRIES; c++) {
 			if (battlog[page].b_entry[c].s.nvalid == 1) {
 				printf("page %d entry %d !valid\n", page, c);
+				private_log_cmd.rp.idx |= 0x100;
 				r++;
 				break;
 			}
@@ -374,6 +373,8 @@ send_log_block(uint8_t sid, uint8_t page)
 			if (msg.dlc >= (NMEA2000_DATA_FASTLENGTH - sizeof(union log_entry)))
 				break;
 		}
+		if (c == LOG_ENTRIES)
+			private_log_cmd.rp.idx |= 0x100;
 		printf("send fast len %d/%d, %d entries\n",
 		    msg.dlc, i, c);
 		if (! nmea2000_send_fast_frame(&msg, fastid))
