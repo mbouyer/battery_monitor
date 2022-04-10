@@ -370,8 +370,10 @@ send_log_block(uint8_t sid, uint8_t page)
 				    battlog[page].b_entry[c].data[j];
 				i++; msg.dlc++;
 			}
-			if (msg.dlc >= (NMEA2000_DATA_FASTLENGTH - sizeof(union log_entry)))
+			if (msg.dlc >= (NMEA2000_DATA_FASTLENGTH - sizeof(union log_entry))) {
+				c++;
 				break;
+			}
 		}
 		if (c == LOG_ENTRIES)
 			private_log_cmd.rp.idx |= 0x100;
