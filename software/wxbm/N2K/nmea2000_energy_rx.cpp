@@ -51,7 +51,7 @@ bool nmea2000_battery_status_rx::handle(const nmea2000_frame &f)
 	}
 
 
-	wxp->setBatt(instance, volt / 100.0, current / 1000.0,
+	wxp->setBatt(instance, volt / 100.0, current / 100.0,
 	    temp / 100.0 - 273.15, true);
 	return true;
 }
