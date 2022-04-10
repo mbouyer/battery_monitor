@@ -29,6 +29,7 @@
 #include <wx/config.h>
 #include "wxbm.h"
 #include "bmstatus.h"
+#include "bmlog.h"
 #include <N2K/NMEA2000.h>
 #include <N2K/NMEA2000Properties.h>
 #include <N2K/NMEA2000PropertiesDialog.h>
@@ -44,8 +45,7 @@ class bmFrame : public wxFrame
 public:
 	bmFrame(const wxString& title);
 	typedef enum dataup {
-		data_nav = 0,
-		data_values,
+		data_values = 0,
 		data_status,
 	} dataup_t; 
 	void wake(dataup_t);
@@ -75,6 +75,7 @@ bmFrame::bmFrame(const wxString& title)
 	: wxFrame(NULL, wxID_ANY, title)
 {
 	int x, y, w, h;
+
 	config = new wxConfig(wxbm::AppName());
 	if (config) {
 		x = config->ReadLong("/Position/X", -1);
@@ -176,6 +177,8 @@ bool wxbm::OnInit()
 	wxp = this;
 	frame = new bmFrame(AppName());
 	frame->Show(true);
+	bmlog = new bmLog(frame);
+	bmlog->Show(false);
 	nmea2000P->Init();
 
 	return true;
@@ -217,4 +220,18 @@ void wxbm::setBatt(int inst, double v, double i, double t, bool valid)
 		}
 	}
 	frame->wake(bmFrame::dataup_t::data_values);
+}
+
+void
+wxbm::setBmAddress(int a)
+{
+	bmlog->address(a);
+}
+
+
+void
+wxbm::addLogEntry(int sid, double volts, double amps,
+                 int temp, int instance, int idx, bool last)
+{
+	bmlog->addLogEntry(sid, volts, amps, temp, instance, idx, last);
 }

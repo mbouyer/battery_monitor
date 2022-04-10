@@ -69,7 +69,7 @@ class nmea2000_frame_tx : public nmea2000_frame, public nmea2000_desc {
 
 class nmea2000_fastframe_tx : public nmea2000_frame_tx {
 public:
-	inline nmea2000_fastframe_tx() : nmea2000_frame_tx(), fastlen(233) { init(); }
+	inline nmea2000_fastframe_tx() : nmea2000_frame_tx(), fastlen(223) { init(); }
 	inline nmea2000_fastframe_tx(const char *desc, bool isuser, u_int pgn, u_int pri, u_int len) : nmea2000_frame_tx(desc, isuser, pgn, pri, 8), fastlen(len) { init(); }
 	virtual ~nmea2000_fastframe_tx();
 	virtual bool send(int);

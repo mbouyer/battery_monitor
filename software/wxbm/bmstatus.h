@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Manuel Bouyer
+ * Copyright (c) 2022 Manuel Bouyer
  *
  * All rights reserved.
  *

@@ -28,13 +28,8 @@
 #ifndef _WXbm_H_
 #define _WXbm_H_
 
-/* Keep in sync with PRIVATE_COMMAND_FACTORS PGN definition */
-#define FACTOR_ERR 0
-#define FACTOR_DIF 1
-#define FACTOR_DIF2 2
-#define NFACTORS  3
-
 class bmFrame;
+class bmLog;
 
 class wxbm : public wxApp
 {
@@ -44,12 +39,14 @@ class wxbm : public wxApp
 	static wxString ErrMsgPrefix();
 	void setBatt(int instance, double v, double i, double t, bool);
 	void setStatus(int, int, const wxString &);
+	void setBmAddress(int);
+	void addLogEntry(int sid, double volts, double amps,
+	    int temp, int instance, int idx, bool last);
   private:
 	bmFrame *frame;
+	bmLog *bmlog;
 };
 
 extern wxbm *wxp;
-
-void n2k_set_bm_address(int addr);
 
 #endif /* _WXbm_H_ */

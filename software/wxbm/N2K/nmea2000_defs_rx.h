@@ -44,6 +44,29 @@ class nmea2000_frame_rx : public nmea2000_desc {
 	virtual void tick() { return;}
 };
 
+class nmea2000_fastframe_rx : public nmea2000_frame_rx, public nmea2000_frame {
+    public:
+	inline nmea2000_fastframe_rx() : nmea2000_frame_rx() { init(); }
+	inline nmea2000_fastframe_rx(const char *desc, bool isuser, int pgn) : nmea2000_frame_rx(desc, isuser, pgn) { init() ; }
+	virtual ~nmea2000_fastframe_rx() {};
+	bool handle(const nmea2000_frame &);
+	virtual bool fast_handle(const nmea2000_frame &) { return false;}
+	inline int getlen() const { return (framelen); };
+    private:
+	uint8_t _userdata[223];
+	int ident;
+	int id;
+	int len;
+	int framelen;
+	inline void init()
+	    {
+	      data = &_userdata[0];
+	      ident = -1;
+	      len = 0;
+	      id = 0;
+	    }
+};
+
 class nmea2000_battery_status_rx : public nmea2000_frame_rx {
     public:
 	inline nmea2000_battery_status_rx() :
@@ -58,6 +81,14 @@ class nmea2000_battery_status_rx : public nmea2000_frame_rx {
 	int addr;
 };
 
+class nmea2000_private_log_rx : public nmea2000_fastframe_rx {
+    public:
+	inline nmea2000_private_log_rx() :
+	    nmea2000_fastframe_rx("NMEA2000 private log", true, PRIVATE_LOG) {};
+	virtual ~nmea2000_private_log_rx() {};
+	bool fast_handle(const nmea2000_frame &f);
+};
+
 class nmea2000_rx {
     public:
 	inline nmea2000_rx() {};
@@ -70,9 +101,11 @@ class nmea2000_rx {
 
     private:
 	nmea2000_battery_status_rx battery_status;
+	nmea2000_private_log_rx private_log;
 
-	std::array<nmea2000_frame_rx *,1> frames_rx = { {
+	std::array<nmea2000_frame_rx *,2> frames_rx = { {
 	    &battery_status,
+	    &private_log,
 	} };
 };
 

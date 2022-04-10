@@ -50,7 +50,7 @@ class nmea2000 : public wxThreadHelper {
 
     inline void setcanif(wxString ifn) {canif = ifn;}
     inline wxString getcanif() {return canif;}
-    int getaddress(void) { return myaddress; }
+    int getaddress(void) { return (state == CLAIMED) ? myaddress : -1; }
     inline void getconfig(int *un, int * di, int *mf)
 	{ *un = uniquenumber; *di = deviceinstance; *mf = manufcode; }
     inline void setconfig(int un, int di, int mf)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Manuel Bouyer
+ * Copyright (c) 2022 Manuel Bouyer
  *
  * All rights reserved.
  *
@@ -25,43 +25,47 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "NMEA2000.h"
-#include "nmea2000_defs_rx.h"
-#include "nmea2000_defs_tx.h"
-#include <wxbm.h>
+#include <wx/wx.h>
+#include <iostream>
+#include <N2K/NMEA2000.h>
+#include "bmstatus.h"
+#include "bmlog.h"
 
-bool nmea2000_battery_status_rx::handle(const nmea2000_frame &f)
+bmLog::bmLog(wxWindow* parent)
+	: wxFrame(parent, wxID_ANY, _T("bmLog"))
 {
-	int instance = f.frame2uint8(0);
-	int volt = f.frame2int16(1);
-	int current = f.frame2int16(3);
-	int temp = f.frame2int16(5);
-	gettimeofday(&last_rx, NULL);
-
-	if (addr != f.getsrc() && nmea2000P->getaddress() != -1) {
-		static const unsigned int dst_pgns[] = {PRIVATE_LOG} ;
-		addr = f.getsrc(); 
-		printf("new bm address %d\n", addr);
-		for (int i = 0;
-		    i < sizeof(dst_pgns) / sizeof(dst_pgns[0]); i++) {
-			nmea2000P->get_frametx(
-			    nmea2000P->get_tx_bypgn(dst_pgns[i]))->setdst(addr);
-		}
-		wxp->setBmAddress(addr);
-	}
-
-
-	wxp->setBatt(instance, volt / 100.0, current / 1000.0,
-	    temp / 100.0 - 273.15, true);
-	return true;
+	cur_log_entry = 0;
+	log_tx = (private_log_tx *)nmea2000P->get_frametx(nmea2000P->get_tx_bypgn(PRIVATE_LOG));
+	bmsizer = new wxFlexGridSizer(4, 5, 5);
 }
 
-void nmea2000_battery_status_rx::tick()
+void
+bmLog::address(int a)
 {
-	struct timeval now, diff;
+	log_tx->sendreq(PRIVATE_LOG_REQUEST_FIRST, 10, 0xaa15);
 
-	gettimeofday(&now, NULL);
-	timersub(&now, &last_rx, &diff);
-	if (diff.tv_sec >= 5)
-		wxp->setBatt(-1, -1, -1, -1, false);
+}
+
+void
+bmLog::addLogEntry(int sid, double volts, double amps,
+                 int temp, int instance, int idx, bool last)
+{
+	wxASSERT(cur_log_entry < LOG_ENTRIES);
+	log_entries[cur_log_entry].volts = volts;
+	log_entries[cur_log_entry].amps = amps;
+	log_entries[cur_log_entry].temp = temp;
+	log_entries[cur_log_entry].instance = instance;
+	log_entries[cur_log_entry].idx = idx;
+	cur_log_entry++;
+	if (last) {
+		for (int i = 0; i < cur_log_entry; i++) {
+			printf("sid 0x%02x idx 0x%02x %3d inst %2d volts %2.2f amps %3.3f temp %3d\n",
+			    sid, log_entries[i].idx, i,
+			    log_entries[i].instance,
+			    log_entries[i].volts, log_entries[i].amps,
+			    log_entries[i].temp);
+		}
+		cur_log_entry = 0;
+		log_tx->sendreq(PRIVATE_LOG_REQUEST_NEXT, sid + 1, idx);
+	}
 }

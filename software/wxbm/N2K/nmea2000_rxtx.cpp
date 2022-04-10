@@ -46,6 +46,37 @@ bool nmea2000_rx::handle(const nmea2000_frame &n2kf)
 	return false;
 }
 
+bool nmea2000_fastframe_rx::handle(const nmea2000_frame &f)
+{
+#define FASTPACKET_IDX_MASK 0x1f
+#define FASTPACKET_ID_MASK  0xe0
+	unsigned char _idx = (f.frame2uint8(0) & FASTPACKET_IDX_MASK);
+	unsigned char _id = (f.frame2uint8(0) & FASTPACKET_ID_MASK);
+
+	if (_idx == 0) {
+		/* new packet */
+		ident = _id;
+		framelen = len = f.frame2uint8(1);
+		for (int i = 0; i < 6 && len > 0; i++) {
+			data[i] = f.frame2uint8(i+2);
+			len--;
+		}
+	} else if (ident == _id) {
+		int i, j;
+		/* i = 6 + (_idx - 1) * 7 : i = _idx * 7 - 1 */
+		for (i = _idx * 7 - 1, j = 1;
+		    i < sizeof(_userdata) && j < 8 && len > 0; i++, j++) {
+			data[i] = f.frame2uint8(j);
+			len--;
+		}
+	}
+	
+	if (len == 0) {
+		return fast_handle(*this);
+	}
+	return true;
+}
+
 void nmea2000_rx::tick()
 {
 	for (u_int i = 0; i < frames_rx.size(); i++) {

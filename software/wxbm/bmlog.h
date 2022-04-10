@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Manuel Bouyer
+ * Copyright (c) 2022 Manuel Bouyer
  *
  * All rights reserved.
  *
@@ -25,43 +25,37 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "NMEA2000.h"
-#include "nmea2000_defs_rx.h"
-#include "nmea2000_defs_tx.h"
-#include <wxbm.h>
+#include <wx/combobox.h>
+#include <N2K/nmea2000_defs_tx.h>
 
-bool nmea2000_battery_status_rx::handle(const nmea2000_frame &f)
+#define NINST 4
+
+/* max number of entries sent by bm per request */
+#define LOG_ENTRIES 51
+
+struct bm_log_entry {
+	double volts;
+	double amps;
+	int temp;
+#define TEMP_INVAL (-1)
+	u_int instance;
+	u_int idx;
+};
+
+class bmLog: public wxFrame
 {
-	int instance = f.frame2uint8(0);
-	int volt = f.frame2int16(1);
-	int current = f.frame2int16(3);
-	int temp = f.frame2int16(5);
-	gettimeofday(&last_rx, NULL);
-
-	if (addr != f.getsrc() && nmea2000P->getaddress() != -1) {
-		static const unsigned int dst_pgns[] = {PRIVATE_LOG} ;
-		addr = f.getsrc(); 
-		printf("new bm address %d\n", addr);
-		for (int i = 0;
-		    i < sizeof(dst_pgns) / sizeof(dst_pgns[0]); i++) {
-			nmea2000P->get_frametx(
-			    nmea2000P->get_tx_bypgn(dst_pgns[i]))->setdst(addr);
-		}
-		wxp->setBmAddress(addr);
-	}
-
-
-	wxp->setBatt(instance, volt / 100.0, current / 1000.0,
-	    temp / 100.0 - 273.15, true);
-	return true;
-}
-
-void nmea2000_battery_status_rx::tick()
-{
-	struct timeval now, diff;
-
-	gettimeofday(&now, NULL);
-	timersub(&now, &last_rx, &diff);
-	if (diff.tv_sec >= 5)
-		wxp->setBatt(-1, -1, -1, -1, false);
-}
+  public:
+	bmLog(wxWindow* parent);
+	void address(int);
+	void addLogEntry(int sid, double volts, double amps,
+		       int temp, int instance, int idx, bool last);
+  private:
+	wxFlexGridSizer *mainsizer, *bmsizer;
+	private_log_tx *log_tx;
+	wxStaticText *Tinst[NINST];
+	wxStaticText *Tvolts[NINST];
+	wxStaticText *Tamps[NINST];
+	wxStaticText *Ttemp[NINST];
+	struct bm_log_entry log_entries[LOG_ENTRIES];
+	int cur_log_entry;
+};
