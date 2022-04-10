@@ -132,6 +132,7 @@ extern struct log_block curlog __at(0x3700);
 /* current log entry (to be updated) */
 uint8_t log_cblk;
 uint8_t log_centry;
+uint8_t log_gen;
 
 /* log requests/replies */
 uint8_t logreq_len;
@@ -261,16 +262,18 @@ next_log_entry(void)
 	printf("write log entry %d/%d\n", log_cblk, log_centry);
 	/* mark entry as valid */
 	curlog.b_entry[log_centry].s.nvalid = 0;
-	curlog.b_flags = 0xfc | B_FILL_PART;
+	curlog.b_flags = log_gen | B_FILL_PART;
 	log_centry++;
 	if (log_centry == LOG_ENTRIES) {
 		/* next block */
 		/* write current block */
-		curlog.b_flags = 0xfc | B_FILL_FULL;
+		curlog.b_flags = log_gen | B_FILL_FULL;
 		page_write(&battlog[log_cblk]);
 		/* point to next block */
 		log_cblk = (log_cblk + 1) & LOG_BLOCKS_MASK;
 		log_centry = 0;
+		if (log_cblk == 0) /* rollover; update gen number */
+			log_gen += 0x4;
 		/* erase and load new block */
 		page_erase(&battlog[log_cblk]);
 		page_read(&battlog[log_cblk]);
@@ -286,7 +289,7 @@ log_erase(void)
 	for (uint8_t c = 0; c < LOG_BLOCKS; c++) {
 		page_erase(&battlog[c]);
 	}
-	log_cblk = log_centry = 0;
+	log_cblk = log_centry = log_gen = 0;
 }
 
 static void
@@ -904,6 +907,7 @@ main(void)
 		if ((battlog[c].b_flags & B_FILL_STAT) == B_FILL_PART) {
 			/* found it */
 			log_cblk = c;
+			log_gen = battlog[c].b_flags & B_FILL_GEN;
 			break;
 		}
 		if ((battlog[c].b_flags & B_FILL_STAT) == B_FILL_FULL) {
@@ -912,6 +916,9 @@ main(void)
 			    == B_FILL_FREE) {
 				/* stopped just at boundary */
 				log_cblk = c2;
+				log_gen = battlog[c].b_flags & B_FILL_GEN;
+				if (log_cblk == 0)
+					log_gen += 0x4;
 				break;
 			}
 		}
@@ -921,6 +928,7 @@ main(void)
 		/* log empty, start a 0 */
 		printf("log empty\n");
 		log_cblk = 0;
+		log_gen = 0;
 	}
 	/* look for first free entry in block */
 	for (c = 0; c < LOG_ENTRIES; c++) {
