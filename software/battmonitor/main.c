@@ -325,7 +325,7 @@ update_log(void)
 		printf(" %4.3fV %ld", v / 100, v_i);
 		utolog(v_i, &curlog.b_entry[log_centry]);
 		curlog.b_entry[log_centry].s.instance = c;
-		if (batt_temp[c] == 0xff) {
+		if (batt_temp[c] == 0xffff) {
 			curlog.b_entry[log_centry].s.temp = 0xff;
 		} else {
 			curlog.b_entry[log_centry].s.temp =
@@ -371,7 +371,7 @@ send_log_block(uint8_t sid, uint8_t page)
 				    battlog[page].b_entry[c].data[j];
 				i++; msg.dlc++;
 			}
-			if (msg.dlc >= NMEA2000_DATA_FASTLENGTH - sizeof(union log_entry))
+			if (msg.dlc >= (NMEA2000_DATA_FASTLENGTH - sizeof(union log_entry)))
 				break;
 		}
 		printf("send fast len %d/%d, %d entries\n",
