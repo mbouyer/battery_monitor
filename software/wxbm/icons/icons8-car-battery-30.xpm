@@ -1,5 +1,5 @@
 /* XPM */
-static char *icons8_car_battery_30[] = {
+static const char *icons8_car_battery_30[] = {
 /* columns rows colors chars-per-pixel */
 "30 30 2 1 ",
 "  c None",
