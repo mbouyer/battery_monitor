@@ -107,7 +107,7 @@ bmFrame::bmFrame(const wxString& title)
 	Connect(myID_DATAUP, wxEVT_COMMAND_TEXT_UPDATED,
 		wxCommandEventHandler(bmFrame::OnDataUpdate));
 
-	bmstatus = new bmStatus(this);
+	bmstatus = new bmStatus(this, config);
 	mainsizer->Add( bmstatus, 0, wxEXPAND | wxALL, 5 );
 
 	SetSizerAndFit(mainsizer);
