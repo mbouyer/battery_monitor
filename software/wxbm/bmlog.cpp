@@ -29,6 +29,8 @@
 #include <iostream>
 #include <fstream>
 #include <err.h>
+#include <stdlib.h>
+#include <inttypes.h>
 #include <N2K/NMEA2000.h>
 #include "bmstatus.h"
 #include "bmlog.h"
@@ -46,18 +48,125 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	log_update_state = LOG_UP_IDLE;
 	last_write_entry = 0;
 
-	if (config) {
-		if (config->Read("/Log/path", &logPath)) {
+	if (!config || !config->Read("/Log/path", &logPath)) {
+		const char *home = getenv("HOME");
+		if (home != NULL) {
+			logPath = wxString::Format(wxT("%s/.wxbm_log"), home);
+			if (config) {
+				config->Write("/Log/path", logPath);
+			}
+		} else {
 			return;
 		}
 	}
-	const char *home = getenv("HOME");
-	if (home != NULL) {
-		logPath = wxString::Format(wxT("%s/.wxbm_log"), home);
-		if (config) {
-			config->Write("/Log/path", logPath);
-		}
+	/* get exising entries from log file */
+	std::ifstream _log(logPath);
+	if(!_log.is_open()) {
+		warn("failed to open %s", logPath.c_str());
+		return;
 	}
+	std::string line;
+	std::getline(_log, line); /* first line is headers */
+	bm_log_entry_t log_entry;
+	while(std::getline(_log, line)) {
+		char buf[160];
+		char *l, *e;
+		int s;
+
+		strncpy(buf, line.c_str(), sizeof(buf));
+		l = buf;
+
+		e = strsep(&l, ",");
+		if (e == NULL) {
+			warnx("separator not found: %s", l);
+			break;
+		}
+		log_entry.instance = strtoi(e, NULL, 0, 0, NINST - 1, &s);
+		if (s) {
+			warnx("instance: %s: conversion failed", e);
+			break;
+		}
+
+		e = strsep(&l, ",");
+		if (e == NULL) {
+			warnx("separator not found: %s", l);
+			break;
+		}
+		errno = 0;
+		log_entry.id = strtol(e, NULL, 0);
+		if (errno) {
+			warn("id: %s: conversion failed", e);
+			break;
+		}
+
+		e = strsep(&l, ",");
+		if (e == NULL) {
+			warnx("separator not found: %s", l);
+			break;
+		}
+		errno = 0;
+		log_entry.volts = strtod(e, NULL);
+		if (errno) {
+			warn("volts: %s: conversion failed", e);
+			break;
+		}
+
+		e = strsep(&l, ",");
+		if (e == NULL) {
+			warnx("separator not found: %s", l);
+			break;
+		}
+		errno = 0;
+		log_entry.amps = strtod(e, NULL);
+		if (errno) {
+			warn("amps: %s: conversion failed", e);
+			break;
+		}
+
+		e = strsep(&l, ",");
+		if (e == NULL) {
+			warnx("separator not found: %s", l);
+			break;
+		}
+		errno = 0;
+		log_entry.temp = strtol(e, NULL, 0);
+		if (errno) {
+			warn("temp: %s: conversion failed", e);
+			break;
+		}
+
+		e = strsep(&l, ",");
+		if (e == NULL) {
+			warnx("separator not found: %s", l);
+			break;
+		}
+		errno = 0;
+		log_entry.time = strtol(e, NULL, 0);
+		if (errno) {
+			warn("time: %s: conversion failed", e);
+			break;
+		}
+
+		e = strsep(&l, ",");
+		if (e == NULL) {
+			warnx("separator not found: %s", l);
+			break;
+		}
+		errno = 0;
+		log_entry.flags = strtol(e, NULL, 0);
+		if (errno) {
+			warn("flags: %s: conversion failed", e);
+			break;
+		}
+
+		printf("idx 0x%06x inst %2d volts %2.2f amps %3.3f temp %3d time %ld flags 0x%02x\n",
+		    log_entry.id, log_entry.instance,
+		    log_entry.volts, log_entry.amps,
+		    log_entry.temp, log_entry.time, log_entry.flags);
+		log_entries.push_back(log_entry);
+	}
+	_log.close();
+	last_write_entry = log_entries.size() - 1;
 }
 
 void
@@ -65,11 +174,18 @@ bmLog::address(int a)
 {
 	log_lock();
 	if (log_req_state == LOG_REQ_IDLE && log_state == LOG_INIT) {
-		log_req.cmd = PRIVATE_LOG_REQUEST_FIRST;
+		if (last_write_entry == 0) {
+			log_req.cmd = PRIVATE_LOG_REQUEST_FIRST;
+			log_req.idx = 0;
+			log_update_state = LOG_UP_DOUP;
+		} else {
+			log_req.cmd = PRIVATE_LOG_REQUEST;
+			log_req.idx =
+			  (log_entries.back().id & ID_IDX_MASK) >> ID_IDX_SHIFT;
+			log_update_state = LOG_UP_SEARCH;
+		}
 		sid_inc();
-		log_req.idx = 0;
 		log_req_state = LOG_REQ_DOREQ;
-		log_update_state = LOG_UP_DOUP;
 	}
 	log_unlock();
 }
@@ -238,7 +354,7 @@ bmLog::log_update(void)
 		if (log_entries[i].time != 0)
 			break;
 		if (i != laste && lasteinst == log_entries[i].instance)
-			now -= 600; /* one log every 10mn (/
+			now -= 600; /* one log every 10mn */
 		log_entries[i].time = now;
 		printf(" now 0x%ld\n", log_entries[i].time);
 		if (i < last_write_entry)
@@ -251,12 +367,12 @@ bmLog::log_update(void)
 		_logf << "instance,id,volts,amps,temp,time,flags" << std::endl;
 		for (int i = 0; i <= laste; i++) {
 			_logf << log_entries[i].instance << ",";
-			_logf << std::hex << log_entries[i].id << std::dec <<",";
+			_logf << "0x" << std::hex << log_entries[i].id << std::dec <<",";
 			_logf << log_entries[i].volts << ",";
 			_logf << log_entries[i].amps << ",";
 			_logf << log_entries[i].temp << ",";
 			_logf << log_entries[i].time << ",";
-			_logf << std::hex << log_entries[i].flags << std::endl;
+			_logf << "0x" << std::hex << log_entries[i].flags << std::endl;
 		}
 		_logf.close();
 		last_write_entry = laste;
@@ -264,12 +380,12 @@ bmLog::log_update(void)
 		std::ofstream _logf(logPath, std::ios::out | std::ios::app);
 		for (int i = last_write_entry + 1; i <= laste; i++) {
 			_logf << log_entries[i].instance << ",";
-			_logf << std::hex << log_entries[i].id << std::dec <<",";
+			_logf << "0x" << std::hex << log_entries[i].id << std::dec <<",";
 			_logf << log_entries[i].volts << ",";
 			_logf << log_entries[i].amps << ",";
 			_logf << log_entries[i].temp << ",";
 			_logf << log_entries[i].time << ",";
-			_logf << std::hex << log_entries[i].flags << std::endl;
+			_logf << "0x" << std::hex << log_entries[i].flags << std::endl;
 		}
 		_logf.close();
 		last_write_entry = laste;
