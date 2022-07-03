@@ -27,12 +27,13 @@
 
 #include <wx/wx.h>
 #include <iostream>
+#include <fstream>
 #include <err.h>
 #include <N2K/NMEA2000.h>
 #include "bmstatus.h"
 #include "bmlog.h"
 
-bmLog::bmLog(wxWindow* parent)
+bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	: wxFrame(parent, wxID_ANY, _T("bmLog"))
 {
 	cur_log_entry = 0;
@@ -42,6 +43,21 @@ bmLog::bmLog(wxWindow* parent)
 	if ((errno = pthread_mutex_init(&log_mtx, NULL)) != 0)
 		err(1, "init log_mtx");
 	log_state = LOG_INIT;
+	log_update_state = LOG_UP_IDLE;
+	last_write_entry = 0;
+
+	if (config) {
+		if (config->Read("/Log/path", &logPath)) {
+			return;
+		}
+	}
+	const char *home = getenv("HOME");
+	if (home != NULL) {
+		logPath = wxString::Format(wxT("%s/.wxbm_log"), home);
+		if (config) {
+			config->Write("/Log/path", logPath);
+		}
+	}
 }
 
 void
@@ -50,7 +66,7 @@ bmLog::address(int a)
 	log_lock();
 	if (log_req_state == LOG_REQ_IDLE && log_state == LOG_INIT) {
 		log_req.cmd = PRIVATE_LOG_REQUEST_FIRST;
-		log_req.sid++;
+		sid_inc();
 		log_req.idx = 0;
 		log_req_state = LOG_REQ_DOREQ;
 		log_update_state = LOG_UP_DOUP;
@@ -73,6 +89,9 @@ bmLog::addLogEntry(int sid, double volts, double amps,
 	received_log_entries[cur_log_entry].id = (idx << ID_IDX_SHIFT) |
 	    (cur_log_entry << ID_INDEX_SHIFT);
 	received_log_entries[cur_log_entry].time = 0;
+	received_log_entries[cur_log_entry].flags = 0;
+	if (volts == 0 && amps == 0 && instance == 0 && temp == TEMP_NULL)
+		received_log_entries[cur_log_entry].flags = LOGE_BOUNDARY;
 	cur_log_entry++;
 	if (last) {
 		log_lock();
@@ -97,6 +116,9 @@ bmLog::addLogEntry(int sid, double volts, double amps,
 				}
 				break;
 			case LOG_UP_DOUP:
+				log_update_state = LOG_UP_DOUP_NEWDATA;
+				/* FALLTHROUGGH */
+			case LOG_UP_DOUP_NEWDATA:
 				printf(" store\n");
 				log_entries.push_back(received_log_entries[i]);
 				break;
@@ -104,7 +126,7 @@ bmLog::addLogEntry(int sid, double volts, double amps,
 		}
 		cur_log_entry = 0;
 		log_req.cmd = PRIVATE_LOG_REQUEST_NEXT;
-		log_req.sid++;
+		sid_inc();
 		log_req.idx = idx;
 		log_req_state = LOG_REQ_DOREQ;
 		// sendreq();
@@ -127,7 +149,7 @@ bmLog::logError(int sid, int err)
 		printf("log idx 0x%x not found\n", log_req.idx);
 		/* assume the log was reset */
 		log_req.cmd = PRIVATE_LOG_REQUEST_FIRST;
-		log_req.sid++;
+		sid_inc();
 		log_req.idx = 0;
 		log_req_state = LOG_REQ_DOREQ;
 		log_update_state = LOG_UP_DOUP;
@@ -135,6 +157,10 @@ bmLog::logError(int sid, int err)
 	case PRIVATE_LOG_ERROR_LAST:
 		wxASSERT(log_req.cmd == PRIVATE_LOG_REQUEST_NEXT);
 		log_req_state = LOG_REQ_IDLE;
+		if (log_update_state == LOG_UP_DOUP_NEWDATA &&
+		    log_state != LOG_INIT) {
+			log_update();
+		}
 		log_update_state = LOG_UP_IDLE;
 		printf("log complete\n");
 		if (log_state == LOG_INIT)
@@ -177,7 +203,7 @@ bmLog::tick(void)
 		if (diff.tv_sec >= 60) {
 			/* request new data */
 			log_req.cmd = PRIVATE_LOG_REQUEST;
-			log_req.sid++;
+			sid_inc();
 			log_req.idx =
 			  (log_entries.back().id & ID_IDX_MASK) >> ID_IDX_SHIFT;
 			log_req_state = LOG_REQ_DOREQ;
@@ -187,4 +213,65 @@ bmLog::tick(void)
 		}
 	}
 	log_unlock();
+}
+
+void
+bmLog::log_update(void)
+{
+	int laste = log_entries.size() - 1;
+	int lasteinst = log_entries[laste].instance;
+	time_t now = time(NULL);
+	const char *home;
+
+	/*
+	 * update log times for this log block. We know that the last entry
+	 * if from current time (with one minute precision) and we have 10mn
+	 * between entries so walk the log backware updating time, util
+	 * we find a boundary (i.e. BM boot) or non-0 time.
+	 * We have one entry per instance, each with the same time so we have
+	 * to deal with that
+	 */
+	for (int i = laste; i >= 0; i--) {
+		printf("entry %d fl 0x%x time %ld", i, log_entries[i].flags, log_entries[i].time);
+		if (log_entries[i].flags & LOGE_BOUNDARY)
+			break;
+		if (log_entries[i].time != 0)
+			break;
+		if (i != laste && lasteinst == log_entries[i].instance)
+			now -= 600; /* one log every 10mn (/
+		log_entries[i].time = now;
+		printf(" now 0x%ld\n", log_entries[i].time);
+		if (i < last_write_entry)
+			last_write_entry = 0; /* need to rewrite whole file */
+	}
+	printf("\n");
+	if (last_write_entry == 0) {
+		(void)rename(logPath, logPath+"~");
+		std::ofstream _logf(logPath);
+		_logf << "instance,id,volts,amps,temp,time,flags" << std::endl;
+		for (int i = 0; i <= laste; i++) {
+			_logf << log_entries[i].instance << ",";
+			_logf << std::hex << log_entries[i].id << std::dec <<",";
+			_logf << log_entries[i].volts << ",";
+			_logf << log_entries[i].amps << ",";
+			_logf << log_entries[i].temp << ",";
+			_logf << log_entries[i].time << ",";
+			_logf << std::hex << log_entries[i].flags << std::endl;
+		}
+		_logf.close();
+		last_write_entry = laste;
+	} else {
+		std::ofstream _logf(logPath, std::ios::out | std::ios::app);
+		for (int i = last_write_entry + 1; i <= laste; i++) {
+			_logf << log_entries[i].instance << ",";
+			_logf << std::hex << log_entries[i].id << std::dec <<",";
+			_logf << log_entries[i].volts << ",";
+			_logf << log_entries[i].amps << ",";
+			_logf << log_entries[i].temp << ",";
+			_logf << log_entries[i].time << ",";
+			_logf << std::hex << log_entries[i].flags << std::endl;
+		}
+		_logf.close();
+		last_write_entry = laste;
+	}
 }

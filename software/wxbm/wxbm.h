@@ -44,9 +44,10 @@ class wxbm : public wxApp
 	    int temp, int instance, int idx, bool last);
 	void logError(int sid, int err);
 	void logTick(void);
+
+	bmLog *bmlog;
   private:
 	bmFrame *frame;
-	bmLog *bmlog;
 };
 
 extern wxbm *wxp;

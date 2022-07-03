@@ -49,12 +49,14 @@ typedef struct bm_log_entry {
 #define ID_INDEX_MASK	0xffff0000
 #define ID_INDEX_SHIFT	16
 	time_t time;
+	int flags;
+#define LOGE_BOUNDARY	0x01
 } bm_log_entry_t;
 
 class bmLog: public wxFrame
 {
   public:
-	bmLog(wxWindow* parent);
+	bmLog(wxWindow* parent, wxConfig *config);
 	void address(int);
 	void addLogEntry(int sid, double volts, double amps,
 		       int temp, int instance, int idx, bool last);
@@ -62,6 +64,7 @@ class bmLog: public wxFrame
 	void tick(void);
   private:
 	wxFlexGridSizer *mainsizer, *bmsizer;
+	wxString logPath;
 	private_log_tx *log_tx;
 	wxStaticText *Tinst[NINST];
 	wxStaticText *Tvolts[NINST];
@@ -72,6 +75,7 @@ class bmLog: public wxFrame
 	struct timeval last_ev;
 	struct timeval last_data;
 	std::vector<bm_log_entry_t> log_entries;
+	int last_write_entry;
 	pthread_mutex_t log_mtx;
 	struct log_req {
 		int cmd;
@@ -87,11 +91,18 @@ class bmLog: public wxFrame
 		LOG_UP_IDLE,
 		LOG_UP_SEARCH,
 		LOG_UP_DOUP,
+		LOG_UP_DOUP_NEWDATA,
 	} log_update_state;
 	enum {
 		LOG_INIT,
 		LOG_IDLE,
 	} log_state;
+
+	inline void sid_inc(void) {
+		log_req.sid++;
+		if (log_req.sid == 0 || log_req.sid > 0xfd)
+			log_req.sid = 1;
+	}
 	inline void sendreq(void) {
 		log_tx->sendreq(log_req.cmd, log_req.sid, log_req.idx);
 		gettimeofday(&last_ev, NULL);
@@ -105,4 +116,5 @@ class bmLog: public wxFrame
 		if ((errno = pthread_mutex_unlock(&log_mtx)) != 0)
 			err(1, "lock log_mtx");
 	};
+	void log_update(void);
 };

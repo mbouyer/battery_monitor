@@ -112,6 +112,9 @@ bmFrame::bmFrame(const wxString& title)
 
 	SetSizerAndFit(mainsizer);
 	this->SetSize(x, y, w, h);
+
+	wxp->bmlog = new bmLog(this, config);
+	wxp->bmlog->Show(false);
 }
 
 void bmFrame::OnN2KConfig(wxCommandEvent & WXUNUSED(event))
@@ -180,8 +183,6 @@ bool wxbm::OnInit()
 	frame = new bmFrame(AppName());
 	frame->SetIcon(icon);
 	frame->Show(true);
-	bmlog = new bmLog(frame);
-	bmlog->Show(false);
 	nmea2000P->Init();
 
 	return true;
