@@ -122,6 +122,7 @@ bmLog::tick(void)
 			/* timeout, resend last command */
 			printf("timeout cmd %d sid 0x%x idx 0x%x\n", 
 			    log_req.cmd, log_req.sid, log_req.idx);
+			cur_log_entry = 0;
 			sendreq();
 		}
 		break;
