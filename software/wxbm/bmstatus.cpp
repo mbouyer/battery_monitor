@@ -110,7 +110,10 @@ bmStatus::values(int i, double v, double a, double t, bool valid)
 	if (valid) {
 		Tvolts[i]->SetLabel(wxString::Format(_T("%.2f"), v));
 		Tamps[i]->SetLabel(wxString::Format(_T("%.2f"), a));
-		Ttemp[i]->SetLabel(wxString::Format(_T("%.1f"), t));
+		if (t > -100) 
+			Ttemp[i]->SetLabel(wxString::Format(_T("%.1f"), t));
+		else
+			Ttemp[i]->SetLabel(wxString::Format(_T("")));
 	} else {
 		Tvolts[i]->SetLabel(wxString::Format(_T("")));
 		Tamps[i]->SetLabel(wxString::Format(_T("")));
