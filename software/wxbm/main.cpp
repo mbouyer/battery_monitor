@@ -30,6 +30,7 @@
 #include "wxbm.h"
 #include "bmstatus.h"
 #include "bmlog.h"
+#include "icons/icons8-car-battery-30.xpm"
 #include <N2K/NMEA2000.h>
 #include <N2K/NMEA2000Properties.h>
 #include <N2K/NMEA2000PropertiesDialog.h>
@@ -106,7 +107,7 @@ bmFrame::bmFrame(const wxString& title)
 	Connect(myID_DATAUP, wxEVT_COMMAND_TEXT_UPDATED,
 		wxCommandEventHandler(bmFrame::OnDataUpdate));
 
-	bmstatus = new bmStatus(this);
+	bmstatus = new bmStatus(this, config);
 	mainsizer->Add( bmstatus, 0, wxEXPAND | wxALL, 5 );
 
 	SetSizerAndFit(mainsizer);
@@ -174,8 +175,10 @@ wxbm *wxp;
 
 bool wxbm::OnInit()
 {
+	wxIcon icon(icons8_car_battery_30);
 	wxp = this;
 	frame = new bmFrame(AppName());
+	frame->SetIcon(icon);
 	frame->Show(true);
 	bmlog = new bmLog(frame);
 	bmlog->Show(false);
