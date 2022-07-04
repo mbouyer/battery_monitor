@@ -26,32 +26,9 @@
  */
 
 #include <wx/combobox.h>
-#include <N2K/nmea2000_defs_tx.h>
-#include <pthread.h>
-#include <err.h>
-#include <vector>
+#include <wx/config.h>
 
-#define NINST 4
-
-/* max number of entries sent by bm per request */
-#define LOG_ENTRIES 51
-
-typedef struct bm_log_entry {
-	double volts;
-	double amps;
-	int temp;
-#define TEMP_INVAL (-1)
-#define TEMP_NULL (233)
-	u_int instance;
-	u_int id; /* idx from packet | index in packet */
-#define ID_IDX_MASK	0xffff
-#define ID_IDX_SHIFT	0
-#define ID_INDEX_MASK	0xffff0000
-#define ID_INDEX_SHIFT	16
-	time_t time;
-	int flags;
-#define LOGE_BOUNDARY	0x01
-} bm_log_entry_t;
+class bmLogStorage;
 
 class bmLog: public wxFrame
 {
@@ -63,58 +40,10 @@ class bmLog: public wxFrame
 	void logError(int sid, int err);
 	void tick(void);
   private:
+	bmLogStorage *bmlog_s;
 	wxFlexGridSizer *mainsizer, *bmsizer;
-	wxString logPath;
-	private_log_tx *log_tx;
 	wxStaticText *Tinst[NINST];
 	wxStaticText *Tvolts[NINST];
 	wxStaticText *Tamps[NINST];
 	wxStaticText *Ttemp[NINST];
-	bm_log_entry_t received_log_entries[LOG_ENTRIES];
-	int cur_log_entry;
-	struct timeval last_ev;
-	struct timeval last_data;
-	std::vector<bm_log_entry_t> log_entries;
-	int last_write_entry;
-	pthread_mutex_t log_mtx;
-	struct log_req {
-		int cmd;
-		int sid;
-		int idx;
-	} log_req;
-	enum {
-		LOG_REQ_IDLE,
-		LOG_REQ_DOREQ,
-		LOG_REQ_WAIT_BLOCK,
-	} log_req_state;
-	enum {
-		LOG_UP_IDLE,
-		LOG_UP_SEARCH,
-		LOG_UP_DOUP,
-		LOG_UP_DOUP_NEWDATA,
-	} log_update_state;
-	enum {
-		LOG_INIT,
-		LOG_IDLE,
-	} log_state;
-
-	inline void sid_inc(void) {
-		log_req.sid++;
-		if (log_req.sid == 0 || log_req.sid > 0xfd)
-			log_req.sid = 1;
-	}
-	inline void sendreq(void) {
-		log_tx->sendreq(log_req.cmd, log_req.sid, log_req.idx);
-		gettimeofday(&last_ev, NULL);
-		log_req_state = LOG_REQ_WAIT_BLOCK;
-	};
-	inline void log_lock(void) {
-		if ((errno = pthread_mutex_lock(&log_mtx)) != 0)
-			err(1, "lock log_mtx");
-	};
-	inline void log_unlock(void) {
-		if ((errno = pthread_mutex_unlock(&log_mtx)) != 0)
-			err(1, "lock log_mtx");
-	};
-	void log_update(void);
 };

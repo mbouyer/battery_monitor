@@ -99,6 +99,7 @@ SET(HDRS
     wxbm.h
     bmstatus.h
     bmlog.h
+    bmlogstorage.h
     ${N2KHDRS}
 )
 
@@ -115,6 +116,7 @@ SET(SRCS
     main.cpp
     bmstatus.cpp
     bmlog.cpp
+    bmlogstorage.cpp
     ${N2KSRCS}
 )
 
