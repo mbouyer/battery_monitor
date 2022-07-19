@@ -69,17 +69,21 @@ bmStatus::bmStatus(wxWindow *parent, wxConfig *config, wxWindowID id)
 		Tvolts[i] = new wxStaticText(this, -1, wxT(""));
 		Tamps[i] = new wxStaticText(this, -1, wxT(""));
 		Ttemp[i] = new wxStaticText(this, -1, wxT(""));
+		label[i] = new wxButton(this, labelidx2id(i));
 		wxString type = Tname[i].BeforeFirst(':');
 		wxString name = Tname[i].AfterFirst(':');
 		if (type.IsSameAs(_T("string"))) {
-			bmsizer->Add(new wxStaticText(this, -1, name), datafl);
+			label[i]->SetLabel(name);
 		} else if (type.IsSameAs(_T("img"))) {
 			wxBitmap bitmap(name, wxBITMAP_TYPE_ANY);
-			bmsizer->Add(new wxStaticBitmap(this, -1, bitmap),
-			    datafl);
+			label[i]->SetBitmap(bitmap);
 		} else  {
+			delete label[i];
+			label[i] = NULL;
 			continue;
 		}
+		this->Bind(wxEVT_BUTTON, &bmStatus::showStat, this, labelidx2id(i));
+		bmsizer->Add(label[i], datafl);
 		bmsizer->Add(Tvolts[i], datafl);
 		bmsizer->Add(Tamps[i], datafl);
 		bmsizer->Add(Ttemp[i], datafl);
@@ -91,6 +95,11 @@ bmStatus::bmStatus(wxWindow *parent, wxConfig *config, wxWindowID id)
 	mainsizer->Add(bmsizer, bmfl);
 
 	SetSizerAndFit(mainsizer);
+}
+
+void bmStatus::showStat(wxCommandEvent& event)
+{
+	printf("showStat %d\n", labelid2idx(event.GetId()));
 }
 
 void
