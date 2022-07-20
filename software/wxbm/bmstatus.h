@@ -27,7 +27,6 @@
 
 #include <wx/combobox.h>
 #include <wx/config.h>
-#include <wx/windowid.h>
 
 #define NINST 4
 
@@ -43,14 +42,4 @@ class bmStatus: public wxPanel
 	wxStaticText *Tvolts[NINST];
 	wxStaticText *Tamps[NINST];
 	wxStaticText *Ttemp[NINST];
-	wxButton *label[NINST];
-	void showStat(wxCommandEvent& event);
-	static inline wxWindowID labelidx2id(int idx)
-	{
-		return (wxID_HIGHEST + 1) + idx;
-	}
-	static inline int labelid2idx(wxWindowID id)
-	{
-		return id - (wxID_HIGHEST + 1);
-	}
 };
