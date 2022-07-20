@@ -27,6 +27,7 @@
 
 #include <wx/wx.h>
 #include <wx/config.h>
+#include <wx/cmdline.h>
 #include "wxbm.h"
 #include "bmstatus.h"
 #include "bmlog.h"
@@ -172,12 +173,25 @@ void bmFrame::OnClose(wxCloseEvent & event)
 	event.Skip();
 }
 
+static const wxCmdLineEntryDesc g_cmdLineDesc [] =
+{
+	{ wxCMD_LINE_SWITCH, "h", "help",
+	    "displays help on the command line parameters",
+	    wxCMD_LINE_VAL_NONE, wxCMD_LINE_OPTION_HELP },
+	{ wxCMD_LINE_SWITCH, "L", "nolog",
+	    "disables reading log from device"},
+	{ wxCMD_LINE_NONE }
+};
+
 IMPLEMENT_APP(wxbm)
 
 wxbm *wxp;
 
 bool wxbm::OnInit()
 {
+	if (!wxApp::OnInit())
+		return false;
+
 	wxIcon icon(icons8_car_battery_30);
 	wxp = this;
 	frame = new bmFrame(AppName());
@@ -185,6 +199,20 @@ bool wxbm::OnInit()
 	frame->Show(true);
 	nmea2000P->Init();
 
+	return true;
+}
+
+void wxbm::OnInitCmdLine(wxCmdLineParser& parser)
+{
+	parser.SetDesc (g_cmdLineDesc);
+	parser.SetSwitchChars (_T("-"));
+}
+
+bool wxbm::OnCmdLineParsed(wxCmdLineParser& parser)
+{
+	getlog = !parser.Found(_T("L"));
+	if (!getlog)
+		printf("log disabled\n");
 	return true;
 }
 
@@ -229,24 +257,28 @@ void wxbm::setBatt(int inst, double v, double i, double t, bool valid)
 void
 wxbm::setBmAddress(int a)
 {
-	bmlog->address(a);
+	if (getlog)
+		bmlog->address(a);
 }
 
 void
 wxbm::addLogEntry(int sid, double volts, double amps,
                  int temp, int instance, int idx, bool last)
 {
-	bmlog->addLogEntry(sid, volts, amps, temp, instance, idx, last);
+	if (getlog)
+		bmlog->addLogEntry(sid, volts, amps, temp, instance, idx, last);
 }
 
 void
 wxbm::logError(int sid, int err)
 {
-	bmlog->logError(sid, err);
+	if (getlog)
+		bmlog->logError(sid, err);
 }
 
 void
 wxbm::logTick(void)
 {
-	bmlog->tick();
+	if (getlog)
+		bmlog->tick();
 }

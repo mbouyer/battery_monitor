@@ -35,6 +35,8 @@ class wxbm : public wxApp
 {
   public:
 	virtual bool OnInit();
+	virtual void OnInitCmdLine(wxCmdLineParser& parser);
+	virtual bool OnCmdLineParsed(wxCmdLineParser& parser);
 	static wxString AppName();
 	static wxString ErrMsgPrefix();
 	void setBatt(int instance, double v, double i, double t, bool);
@@ -48,6 +50,7 @@ class wxbm : public wxApp
 	bmLog *bmlog;
   private:
 	bmFrame *frame;
+	bool getlog;
 };
 
 extern wxbm *wxp;
