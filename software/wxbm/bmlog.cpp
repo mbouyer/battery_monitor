@@ -34,7 +34,6 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	: wxFrame(parent, wxID_ANY, _T("bmLog"))
 {
 	wxString logPath;
-	bmsizer = new wxFlexGridSizer(4, 5, 5);
 
 	if (!config || !config->Read("/Log/path", &logPath)) {
 		const char *home = getenv("HOME");
@@ -48,6 +47,20 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 		}
 	}
 	bmlog_s = new bmLogStorage(logPath);
+
+	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(bmLog::OnClose));
+
+	mainsizer = new wxBoxSizer( wxVERTICAL );
+	title = new wxStaticText(this, -1, _T("truc"));
+	mainsizer->Add( title, 0, wxEXPAND | wxALL, 5 );
+	SetSizerAndFit(mainsizer);
+}
+
+
+void
+bmLog::OnClose(wxCloseEvent & WXUNUSED(event))
+{
+	Show(false);
 }
 
 void

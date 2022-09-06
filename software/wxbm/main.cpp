@@ -40,6 +40,7 @@ const int NUMBER_UPDATE_ID = 100000;
 const int myID_F_N2KCONF =	10;
 const int myID_F_PLOAD =	11;
 const int myID_F_PSAVE =	12;
+const int myID_F_SHOWLOG =	13;
 const int myID_DATAUP =		100;
 
 class bmFrame : public wxFrame
@@ -65,12 +66,14 @@ private:
 	wxBoxSizer *mainsizer;
 	wxMenuBar *menubar;
 	wxMenu *file;
+	wxMenu *view;
 	bmStatus *bmstatus;
 
 	void OnN2KConfig(wxCommandEvent & event);
 	void OnDataUpdate(wxCommandEvent & event);
 	void OnQuit(wxCommandEvent & event);
 	void OnClose(wxCloseEvent & event);
+	void OnShowLog(wxCommandEvent & event);
 };
 
 bmFrame::bmFrame(const wxString& title)
@@ -98,6 +101,9 @@ bmFrame::bmFrame(const wxString& title)
 	file->Append(myID_F_N2KCONF, _T("N2k Config"));
 	file->Append(wxID_EXIT, _T("&Quit"));
 	menubar->Append(file, _T("&File"));
+	view = new wxMenu;
+	view->Append(myID_F_SHOWLOG, _T("&Log"));
+	menubar->Append(view, _T("&View"));
 	SetMenuBar(menubar);
 	Connect(wxEVT_CLOSE_WINDOW,
 		wxCloseEventHandler(bmFrame::OnClose));
@@ -107,6 +113,8 @@ bmFrame::bmFrame(const wxString& title)
 		wxCommandEventHandler(bmFrame::OnQuit));
 	Connect(myID_DATAUP, wxEVT_COMMAND_TEXT_UPDATED,
 		wxCommandEventHandler(bmFrame::OnDataUpdate));
+	Connect(myID_F_SHOWLOG, wxEVT_COMMAND_MENU_SELECTED,
+		wxCommandEventHandler(bmFrame::OnShowLog));
 
 	bmstatus = new bmStatus(this, config);
 	mainsizer->Add( bmstatus, 0, wxEXPAND | wxALL, 5 );
@@ -171,6 +179,14 @@ void bmFrame::OnClose(wxCloseEvent & event)
 	delete nmea2000P;
 	std::cout <<  "Exiting ... " << std::endl;
 	event.Skip();
+}
+
+void bmFrame::OnShowLog(wxCommandEvent & WXUNUSED(event))
+{
+
+	std::cout <<  "show log ... " << std::endl;
+	wxp->bmlog->Show(true);
+
 }
 
 static const wxCmdLineEntryDesc g_cmdLineDesc [] =

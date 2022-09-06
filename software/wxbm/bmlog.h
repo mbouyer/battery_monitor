@@ -40,10 +40,9 @@ class bmLog: public wxFrame
 	void logError(int sid, int err);
 	void tick(void);
   private:
+	wxPanel *mainpanel;
+	wxBoxSizer *mainsizer;
+	wxStaticText *title;
 	bmLogStorage *bmlog_s;
-	wxFlexGridSizer *mainsizer, *bmsizer;
-	wxStaticText *Tinst[NINST];
-	wxStaticText *Tvolts[NINST];
-	wxStaticText *Tamps[NINST];
-	wxStaticText *Ttemp[NINST];
+	void OnClose(wxCloseEvent & event);
 };
