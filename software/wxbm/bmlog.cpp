@@ -51,8 +51,9 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(bmLog::OnClose));
 
 	mainsizer = new wxBoxSizer( wxVERTICAL );
-	title = new wxStaticText(this, -1, _T("truc"));
-	mainsizer->Add( title, 0, wxEXPAND | wxALL, 5 );
+	plotA = new mpWindow( this, -1, wxPoint(0,0), wxSize(100,100), wxSUNKEN_BORDER );
+	plotA->AddLayer(     new mpText(wxT("Intensites"), 10, 10) );
+	mainsizer->Add( plotA, 0, wxEXPAND | wxALL, 5 );
 	SetSizerAndFit(mainsizer);
 }
 

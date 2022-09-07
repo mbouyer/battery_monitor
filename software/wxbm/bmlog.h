@@ -27,6 +27,7 @@
 
 #include <wx/combobox.h>
 #include <wx/config.h>
+#include <mathplot.h>
 
 class bmLogStorage;
 
@@ -42,7 +43,7 @@ class bmLog: public wxFrame
   private:
 	wxPanel *mainpanel;
 	wxBoxSizer *mainsizer;
-	wxStaticText *title;
+	mpWindow *plotA;
 	bmLogStorage *bmlog_s;
 	void OnClose(wxCloseEvent & event);
 };
