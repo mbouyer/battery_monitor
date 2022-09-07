@@ -1,0 +1,3 @@
+[submodule "software/wxbm/wxmathplot"]
+	path = software/wxbm/wxmathplot
+	url = ../wxmathplot.git
