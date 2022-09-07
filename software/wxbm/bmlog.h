@@ -48,6 +48,7 @@ class bmLog: public wxFrame
 	bmLogStorage *bmlog_s;
 	int log_cookie;
 	void OnClose(wxCloseEvent & event);
+	void OnShow(wxShowEvent & event);
 	void logV2XY(std::vector<struct bm_log_entry> &, std::vector<double> &,
 	    std::vector<double> &, std::vector<double> &,
 	    std::vector<double> &, int);

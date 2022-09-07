@@ -51,10 +51,20 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	bmlog_s = new bmLogStorage(logPath);
 
 	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(bmLog::OnClose));
+	Connect(wxEVT_SHOW, wxShowEventHandler(bmLog::OnShow));
 
-	mainsizer = new wxBoxSizer( wxVERTICAL );
-	plotA = new mpWindow( this, -1, wxPoint(0,0), wxSize(100,100), wxSUNKEN_BORDER );
-	plotA->AddLayer(     new mpText(wxT("Intensites"), 10, 10) );
+	plotA = new mpWindow( this, -1, wxPoint(0,0), wxSize(500,500), wxSUNKEN_BORDER );
+	mpScaleX* xaxis = new mpScaleX(wxT(""), mpALIGN_BOTTOM, true, mpX_DATETIME);
+	mpScaleY* yaxis = new mpScaleY(wxT(""), mpALIGN_LEFT, true);
+	wxFont graphFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+	xaxis->SetFont(graphFont);
+	yaxis->SetFont(graphFont);
+	xaxis->SetDrawOutsideMargins(false);
+	yaxis->SetDrawOutsideMargins(false);
+	yaxis->SetLabelFormat(wxT("%.2fA"));
+	plotA->SetMargins(20, 20, 20, 70);
+	plotA->AddLayer(xaxis);
+	plotA->AddLayer(yaxis);
 	std::vector<bm_log_entry_t> entries;
 	log_cookie = bmlog_s->getLogBlock(-1, entries);
 	std::cout << "log_cookie " << log_cookie << std::endl;
@@ -77,9 +87,15 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 			plotA->AddLayer(Alayer);
 		}
 	}
-	mainsizer->Add( plotA, 0, wxEXPAND | wxALL, 5 );
-	SetSizerAndFit(mainsizer);
-	plotA->Fit();
+	mpInfoCoords *nfo;
+	nfo = new mpInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH); 
+	nfo->SetLabelMode(mpX_DATETIME, mpX_LOCALTIME);
+	plotA->AddLayer(nfo);
+	nfo->SetVisible(true);
+	mainsizer = new wxBoxSizer( wxVERTICAL );
+	mainsizer->Add( plotA, 1, wxEXPAND | wxALL, 5 );
+	SetAutoLayout(true);
+	SetSizer(mainsizer);
 }
 
 void
@@ -111,6 +127,14 @@ void
 bmLog::OnClose(wxCloseEvent & WXUNUSED(event))
 {
 	Show(false);
+}
+
+void
+bmLog::OnShow(wxShowEvent &event)
+{
+	plotA->UpdateAll();
+	plotA->Fit();
+	event.Skip();
 }
 
 void
