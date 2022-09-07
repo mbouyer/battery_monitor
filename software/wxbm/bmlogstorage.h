@@ -61,6 +61,9 @@ class bmLogStorage {
 		       int temp, int instance, int idx, bool last);
 	void logError(int sid, int err);
 	void tick(void);
+	int getLogBlock(int cookie, std::vector<bm_log_entry_t> &entries);
+	int getNextLogBlock(int cookie, std::vector<bm_log_entry_t> &entries);
+	int getPrevLogBlock(int cookie, std::vector<bm_log_entry_t> &entries);
   private:
 	wxString FilePath;
 	private_log_tx *log_tx;

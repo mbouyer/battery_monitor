@@ -379,3 +379,78 @@ bmLogStorage::log_update(void)
 		last_write_entry = laste;
 	}
 }
+
+int
+bmLogStorage::getLogBlock(int cookie, std::vector<bm_log_entry_t> &entries)
+{
+	log_lock();
+	if (cookie == -1) {
+		/* point to last block */
+		cookie = log_entries.size() - 1;
+	} else if (cookie < 0 || cookie >= log_entries.size()) {
+		log_unlock();
+		return -1; /* invalid cookie */
+	}
+	/* find start of block */
+	for (; cookie >= 0; cookie--) {
+		if (log_entries[cookie].flags & LOGE_BOUNDARY)
+			break;
+	}
+	cookie++;
+	/* copy block to provided vector */
+	for (int i = cookie; i < log_entries.size(); i++) {
+		if (log_entries[i].flags & LOGE_BOUNDARY)
+			break;
+		entries.push_back(log_entries[i]);
+	}
+	log_unlock();
+	return cookie;
+}
+
+int
+bmLogStorage::getNextLogBlock(int cookie, std::vector<bm_log_entry_t> &entries)
+{
+	bool found = 0;
+	log_lock();
+	if (cookie < 0 || cookie >= log_entries.size()) {
+		log_unlock();
+		return -1; /* invalid cookie */
+	}
+	/* find start of next block */
+	for (; cookie < log_entries.size(); cookie++) {
+		if (found && (log_entries[cookie].flags & LOGE_BOUNDARY) == 0)
+			break;
+		else if (log_entries[cookie].flags & LOGE_BOUNDARY) {
+			found = 1;
+		}
+	}
+	log_unlock();
+	if (cookie == log_entries.size()) {
+		return -1; /* no next block */
+	}
+	return getLogBlock(cookie, entries);
+}
+
+int
+bmLogStorage::getPrevLogBlock(int cookie, std::vector<bm_log_entry_t> &entries)
+{
+	bool found = 0;
+	log_lock();
+	if (cookie < 0 || cookie >= log_entries.size()) {
+		log_unlock();
+		return -1; /* invalid cookie */
+	}
+	/* find start of previous block */
+	for (; cookie >= 0; cookie--) {
+		if (found && (log_entries[cookie].flags & LOGE_BOUNDARY) == 0)
+			break;
+		else if (log_entries[cookie].flags & LOGE_BOUNDARY) {
+			found = 1;
+		}
+	}
+	log_unlock();
+	if (cookie < 0) {
+		return -1; /* no previous block */
+	}
+	return getLogBlock(cookie, entries);
+}
