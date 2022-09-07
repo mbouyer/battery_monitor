@@ -49,6 +49,8 @@ SET(PKGLIB /usr/pkg/lib)
 INCLUDE_DIRECTORIES(${PKGINC})
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${PKGLIB} -Wl,-R${PKGLIB}")
 
+SET(MPDIR ${CMAKE_SOURCE_DIR}/wxmathplot/mathplot)
+INCLUDE_DIRECTORIES(${MPDIR})
 
 MESSAGE (STATUS "*** Will install to ${CMAKE_INSTALL_PREFIX}  ***")
 SET(PREFIX_BIN bin)
@@ -95,12 +97,17 @@ SET(N2KHDRS
     N2K/nmea2000_defs_tx.h
 )
 
+SET(MPHDRS
+    ${MPDIR}/mathplot.h
+)
+
 SET(HDRS
     wxbm.h
     bmstatus.h
     bmlog.h
     bmlogstorage.h
     ${N2KHDRS}
+    ${MPHDRS}
 )
 
 SET(N2KSRCS
@@ -112,12 +119,17 @@ SET(N2KSRCS
     N2K/nmea2000_log.cpp
 )
 
+SET(MPSRCS
+    ${MPDIR}/mathplot.cpp
+)
+
 SET(SRCS
     main.cpp
     bmstatus.cpp
     bmlog.cpp
     bmlogstorage.cpp
     ${N2KSRCS}
+    ${MPSRCS}
 )
 
 SET( PACKAGE_HEADERS "" )
