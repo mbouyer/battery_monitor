@@ -30,6 +30,8 @@
 #include "bmlog.h"
 #include "bmlogstorage.h"
 
+const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
+
 bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	: wxFrame(parent, wxID_ANY, _T("bmLog"))
 {
@@ -53,10 +55,57 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	mainsizer = new wxBoxSizer( wxVERTICAL );
 	plotA = new mpWindow( this, -1, wxPoint(0,0), wxSize(100,100), wxSUNKEN_BORDER );
 	plotA->AddLayer(     new mpText(wxT("Intensites"), 10, 10) );
+	std::vector<bm_log_entry_t> entries;
+	log_cookie = bmlog_s->getLogBlock(-1, entries);
+	std::cout << "log_cookie " << log_cookie << std::endl;
+	if (log_cookie >= 0) {
+		for (int i = 0; i < NINST; i++) {
+			std::vector<double> D;
+			std::vector<double> V;
+			std::vector<double> A;
+			std::vector<double> T;
+			logV2XY(entries, D, V, A, T, i);
+			if (D.size() == 0)
+				continue;
+			std::cout << "log entries " << D.size() << " " << A.size() << " " << i << std::endl;
+			mpFXYVector* Alayer = new mpFXYVector(_("Amps"));
+			Alayer->SetData(D, A);
+			Alayer->SetContinuity(true);
+			wxPen vectorpen(*instcolor[i], 2, wxSOLID);
+			Alayer->SetPen(vectorpen);
+			Alayer->SetDrawOutsideMargins(false);
+			plotA->AddLayer(Alayer);
+		}
+	}
 	mainsizer->Add( plotA, 0, wxEXPAND | wxALL, 5 );
 	SetSizerAndFit(mainsizer);
+	plotA->Fit();
 }
 
+void
+bmLog::logV2XY(std::vector<bm_log_entry_t> &e, std::vector<double> &D, 
+    std::vector<double> &V, std::vector<double> &A,
+    std::vector<double> &T, int instance)
+{
+	std::cout << "logV2XY size " <<  e.size() << std::endl;
+	for (int i = 0; i < e.size(); i++) {
+		if (e[i].instance != instance)
+			continue;
+		/*
+		 * of time is known, use it
+		 * otherwise, just compute time from start of block
+		 */
+		if (e[i].time != 0) {
+			D.push_back(e[i].time);
+		} else {
+			D.push_back(i * 600);
+		}
+		V.push_back(e[i].volts);
+		A.push_back(e[i].amps);
+		if (e[i].temp != TEMP_INVAL) 
+			T.push_back(e[i].temp);
+	}
+}
 
 void
 bmLog::OnClose(wxCloseEvent & WXUNUSED(event))

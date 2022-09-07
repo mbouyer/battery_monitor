@@ -30,6 +30,7 @@
 #include <mathplot.h>
 
 class bmLogStorage;
+struct bm_log_entry;
 
 class bmLog: public wxFrame
 {
@@ -45,5 +46,9 @@ class bmLog: public wxFrame
 	wxBoxSizer *mainsizer;
 	mpWindow *plotA;
 	bmLogStorage *bmlog_s;
+	int log_cookie;
 	void OnClose(wxCloseEvent & event);
+	void logV2XY(std::vector<struct bm_log_entry> &, std::vector<double> &,
+	    std::vector<double> &, std::vector<double> &,
+	    std::vector<double> &, int);
 };
