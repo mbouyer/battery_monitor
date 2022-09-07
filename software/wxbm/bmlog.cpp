@@ -53,18 +53,9 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(bmLog::OnClose));
 	Connect(wxEVT_SHOW, wxShowEventHandler(bmLog::OnShow));
 
-	plotA = new mpWindow( this, -1, wxPoint(0,0), wxSize(500,500), wxSUNKEN_BORDER );
-	mpScaleX* xaxis = new mpScaleX(wxT(""), mpALIGN_BOTTOM, true, mpX_DATETIME);
-	mpScaleY* yaxis = new mpScaleY(wxT(""), mpALIGN_LEFT, true);
-	wxFont graphFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
-	xaxis->SetFont(graphFont);
-	yaxis->SetFont(graphFont);
-	xaxis->SetDrawOutsideMargins(false);
-	yaxis->SetDrawOutsideMargins(false);
-	yaxis->SetLabelFormat(wxT("%.2fA"));
-	plotA->SetMargins(20, 20, 20, 70);
-	plotA->AddLayer(xaxis);
-	plotA->AddLayer(yaxis);
+	plotA = MakePlot(wxT("%.2fA"));
+	plotV = MakePlot(wxT("%.2fV"));
+	plotT = MakePlot(wxT("%.2fC"));
 	std::vector<bm_log_entry_t> entries;
 	log_cookie = bmlog_s->getLogBlock(-1, entries);
 	std::cout << "log_cookie " << log_cookie << std::endl;
@@ -77,23 +68,37 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 			logV2XY(entries, D, V, A, T, i);
 			if (D.size() == 0)
 				continue;
-			std::cout << "log entries " << D.size() << " " << A.size() << " " << i << std::endl;
+			std::cout << "log entries " << D.size() << " " << A.size() << " " << V.size() << " " << T.size() << " " << i << std::endl;
+			wxPen vectorpen(*instcolor[i], 2, wxSOLID);
+
 			mpFXYVector* Alayer = new mpFXYVector(_("Amps"));
 			Alayer->SetData(D, A);
 			Alayer->SetContinuity(true);
-			wxPen vectorpen(*instcolor[i], 2, wxSOLID);
 			Alayer->SetPen(vectorpen);
 			Alayer->SetDrawOutsideMargins(false);
 			plotA->AddLayer(Alayer);
+
+			mpFXYVector* Vlayer = new mpFXYVector(_("Volts"));
+			Vlayer->SetData(D, V);
+			Vlayer->SetContinuity(true);
+			Vlayer->SetPen(vectorpen);
+			Vlayer->SetDrawOutsideMargins(false);
+			plotV->AddLayer(Vlayer);
+
+			if (T.size() == D.size()) {
+				mpFXYVector* Tlayer = new mpFXYVector(_("Temp"));
+				Tlayer->SetData(D, T);
+				Tlayer->SetContinuity(true);
+				Tlayer->SetPen(vectorpen);
+				Tlayer->SetDrawOutsideMargins(false);
+				plotT->AddLayer(Tlayer);
+			}
 		}
 	}
-	mpInfoCoords *nfo;
-	nfo = new mpInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH); 
-	nfo->SetLabelMode(mpX_DATETIME, mpX_LOCALTIME);
-	plotA->AddLayer(nfo);
-	nfo->SetVisible(true);
 	mainsizer = new wxBoxSizer( wxVERTICAL );
 	mainsizer->Add( plotA, 1, wxEXPAND | wxALL, 5 );
+	mainsizer->Add( plotV, 1, wxEXPAND | wxALL, 5 );
+	mainsizer->Add( plotT, 1, wxEXPAND | wxALL, 5 );
 	SetAutoLayout(true);
 	SetSizer(mainsizer);
 }
@@ -134,6 +139,8 @@ bmLog::OnShow(wxShowEvent &event)
 {
 	plotA->UpdateAll();
 	plotA->Fit();
+	plotV->Fit();
+	plotT->Fit();
 	event.Skip();
 }
 
@@ -160,4 +167,28 @@ void
 bmLog::tick(void)
 {
 	bmlog_s->tick();
+}
+
+mpWindow *
+bmLog::MakePlot(wxString yFormat)
+{
+	mpWindow *plot;
+	plot = new mpWindow( this, -1, wxPoint(0,0), wxSize(500,500), wxSUNKEN_BORDER );
+	mpScaleX* xaxis = new mpScaleX(wxT(""), mpALIGN_BOTTOM, true, mpX_DATETIME);
+	mpScaleY* yaxis = new mpScaleY(wxT(""), mpALIGN_LEFT, true);
+	wxFont graphFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+	xaxis->SetFont(graphFont);
+	yaxis->SetFont(graphFont);
+	xaxis->SetDrawOutsideMargins(false);
+	yaxis->SetDrawOutsideMargins(false);
+	yaxis->SetLabelFormat(yFormat);
+	plot->SetMargins(20, 20, 20, 70);
+	plot->AddLayer(xaxis);
+	plot->AddLayer(yaxis);
+	mpInfoCoords *nfo;
+	nfo = new mpInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH); 
+	nfo->SetLabelMode(mpX_DATETIME, mpX_LOCALTIME);
+	plot->AddLayer(nfo);
+	nfo->SetVisible(true);
+	return plot;
 }

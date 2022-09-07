@@ -45,6 +45,8 @@ class bmLog: public wxFrame
 	wxPanel *mainpanel;
 	wxBoxSizer *mainsizer;
 	mpWindow *plotA;
+	mpWindow *plotV;
+	mpWindow *plotT;
 	bmLogStorage *bmlog_s;
 	int log_cookie;
 	void OnClose(wxCloseEvent & event);
@@ -52,4 +54,5 @@ class bmLog: public wxFrame
 	void logV2XY(std::vector<struct bm_log_entry> &, std::vector<double> &,
 	    std::vector<double> &, std::vector<double> &,
 	    std::vector<double> &, int);
+	mpWindow *MakePlot(wxString);
 };
