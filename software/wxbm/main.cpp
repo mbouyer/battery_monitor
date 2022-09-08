@@ -36,12 +36,11 @@
 #include <N2K/NMEA2000Properties.h>
 #include <N2K/NMEA2000PropertiesDialog.h>
 
-const int NUMBER_UPDATE_ID = 100000;
-const int myID_F_N2KCONF =	10;
-const int myID_F_PLOAD =	11;
-const int myID_F_PSAVE =	12;
-const int myID_F_SHOWLOG =	13;
-const int myID_DATAUP =		100;
+const int myID_F_N2KCONF =	wxID_HIGHEST + 10;
+const int myID_F_PLOAD =	wxID_HIGHEST + 11;
+const int myID_F_PSAVE =	wxID_HIGHEST + 12;
+const int myID_F_SHOWLOG =	wxID_HIGHEST + 13;
+const int myID_DATAUP =		wxID_HIGHEST + 100;
 
 class bmFrame : public wxFrame
 {
