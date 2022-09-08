@@ -29,6 +29,7 @@
 #include "bmstatus.h"
 #include "bmlog.h"
 #include "bmlogstorage.h"
+#include "bmmathplot.h"
 
 const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
 
@@ -185,7 +186,7 @@ bmLog::MakePlot(wxString yFormat)
 {
 	mpWindow *plot;
 	plot = new mpWindow( this, -1, wxPoint(0,0), wxSize(500,500), wxSUNKEN_BORDER );
-	mpScaleX* xaxis = new mpScaleX(wxT(""), mpALIGN_BOTTOM, true, mpX_DATETIME);
+	bmScaleX* xaxis = new bmScaleX(wxT(""), mpALIGN_BOTTOM);
 	mpScaleY* yaxis = new mpScaleY(wxT(""), mpALIGN_LEFT, true);
 	wxFont graphFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 	xaxis->SetFont(graphFont);

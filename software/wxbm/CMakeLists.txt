@@ -106,6 +106,7 @@ SET(HDRS
     bmstatus.h
     bmlog.h
     bmlogstorage.h
+    bmmathplot.h
     ${N2KHDRS}
     ${MPHDRS}
 )
@@ -128,6 +129,7 @@ SET(SRCS
     bmstatus.cpp
     bmlog.cpp
     bmlogstorage.cpp
+    bmmathplot.cpp
     ${N2KSRCS}
     ${MPSRCS}
 )
