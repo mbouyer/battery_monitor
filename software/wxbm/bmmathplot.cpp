@@ -276,7 +276,7 @@ void bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 				} else {
 					timestruct = *gmtime(&when);
 				}
-				m_content.Printf(wxT("x = %04.0f-%02.0f-%02.0f %02.0f:%02.0f\ny = %s"), (double)timestruct.tm_year+1900, (double)timestruct.tm_mon+1, (double)timestruct.tm_mday, (double)timestruct.tm_hour, (double)timestruct.tm_min, yStr.c_str());
+				m_content.Printf(wxT("%04.0f-%02.0f-%02.0f %02.0f:%02.0f\n%s"), (double)timestruct.tm_year+1900, (double)timestruct.tm_mon+1, (double)timestruct.tm_mday, (double)timestruct.tm_hour, (double)timestruct.tm_min, yStr.c_str());
 			}
 		} else if (m_labelType == mpX_DATE) {
 			when = (time_t) xVal;
@@ -286,7 +286,7 @@ void bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 				} else {
 					timestruct = *gmtime(&when);
 				}
-				m_content.Printf(wxT("x = %04.0f-%02.0f-%02.0f\ny = %s"), (double)timestruct.tm_year+1900, (double)timestruct.tm_mon+1, (double)timestruct.tm_mday, yStr.c_str());
+				m_content.Printf(wxT("%04.0f-%02.0f-%02.0f\n%s"), (double)timestruct.tm_year+1900, (double)timestruct.tm_mon+1, (double)timestruct.tm_mday, yStr.c_str());
 			}
 		} else if ((m_labelType == mpX_TIME) || (m_labelType == mpX_HOURS)) {
 			double modulus = fabs(xVal);
@@ -294,7 +294,7 @@ void bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 			double hh = floor(modulus/3600);
 			double mm = floor((modulus - hh*3600)/60);
 			double ss = modulus - hh*3600 - mm*60;
-			m_content.Printf(wxT("x = %02.0f:%02.0f\ny = %s"), sign*hh, mm, yStr.c_str());
+			m_content.Printf(wxT("%02.0f:%02.0f\n%s"), sign*hh, mm, yStr.c_str());
 		}
 
 	}
