@@ -31,6 +31,10 @@
 #include "bmlogstorage.h"
 #include "bmmathplot.h"
 
+static const int plotID_A = wxID_HIGHEST + 1;
+static const int plotID_V = wxID_HIGHEST + 2;
+static const int plotID_T = wxID_HIGHEST + 3;
+
 const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
 
 bmLog::bmLog(wxWindow* parent, wxConfig *config)
@@ -63,12 +67,13 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 
 	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(bmLog::OnClose));
 	Connect(wxEVT_SHOW, wxShowEventHandler(bmLog::OnShow));
+	Connect(SCALEX_EVENT, wxCommandEventHandler(bmLog::OnScale));
 
-	plotA = MakePlot(wxT("%.2fA"));
-	plotV = MakePlot(wxT("%.2fV"));
+	plotA = MakePlot(wxT("%.2fA"), plotID_A);
+	plotV = MakePlot(wxT("%.2fV"), plotID_V);
 	wchar_t degChar = 0x00B0;
 	wxString degFmt = wxT("%.1f");
-	plotT = MakePlot(degFmt + degChar);
+	plotT = MakePlot(degFmt + degChar, plotID_T);
 	std::vector<bm_log_entry_t> entries;
 	log_cookie = bmlog_s->getLogBlock(-1, entries);
 	std::cout << "log_cookie " << log_cookie << std::endl;
@@ -158,6 +163,39 @@ bmLog::OnShow(wxShowEvent &event)
 }
 
 void
+bmLog::OnScale(wxCommandEvent &event)
+{
+	double n_scaleX, n_posX;
+	switch(event.GetId()) {
+	case plotID_A:
+		n_scaleX = plotA->GetScaleX();
+		n_posX = plotA->GetXpos();
+		break;
+	case plotID_V:
+		n_scaleX = plotV->GetScaleX();
+		n_posX = plotV->GetXpos();
+		break;
+	case plotID_T:
+		n_scaleX = plotT->GetScaleX();
+		n_posX = plotT->GetXpos();
+		break;
+	default:
+		return;
+	}
+	if (n_scaleX == mp_scaleX && n_posX == mp_posX)
+		return;
+	mp_scaleX = n_scaleX;
+	mp_posX = n_posX;
+
+	plotA->SetPosX(n_posX);
+	plotA->SetScaleX(n_scaleX);
+	plotV->SetPosX(n_posX);
+	plotV->SetScaleX(n_scaleX);
+	plotT->SetPosX(n_posX);
+	plotT->SetScaleX(n_scaleX);
+}
+
+void
 bmLog::address(int a)
 {
 	bmlog_s->address(a);
@@ -183,10 +221,10 @@ bmLog::tick(void)
 }
 
 mpWindow *
-bmLog::MakePlot(wxString yFormat)
+bmLog::MakePlot(wxString yFormat, wxWindowID id)
 {
 	mpWindow *plot;
-	plot = new mpWindow( this, -1, wxPoint(0,0), wxSize(500,500), wxSUNKEN_BORDER );
+	plot = new mpWindow( this, id, wxPoint(0,0), wxSize(500,500), wxSUNKEN_BORDER );
 	bmScaleX* xaxis = new bmScaleX(wxT(""), mpALIGN_BOTTOM);
 	mpScaleY* yaxis = new mpScaleY(wxT(""), mpALIGN_LEFT, true);
 	wxFont graphFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);

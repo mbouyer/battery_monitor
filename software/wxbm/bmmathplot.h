@@ -14,6 +14,9 @@ public:
     virtual void Plot(wxDC & dc, mpWindow & w);
 };
 
+/* event sent when X range (possibly) changed */
+wxDECLARE_EVENT(SCALEX_EVENT, wxCommandEvent);
+
 /* mpScaleX reimplementation appropriate for the bmlog
    round ticks to minutes and display time in a more concise way
    Allow Y format to be set
@@ -30,4 +33,5 @@ public:
 protected:
     wxString m_fmt;
 };
+
 #endif // _BM_MATHPLOT_H_

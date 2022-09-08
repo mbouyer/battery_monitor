@@ -22,8 +22,14 @@ bmScaleX::bmScaleX(wxString name, int flags) :
 // Minimum axis label separation
 #define mpMIN_X_AXIS_LABEL_SEPARATION 64
 
+wxDEFINE_EVENT(SCALEX_EVENT, wxCommandEvent);       
+
 void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 {
+	wxCommandEvent event(SCALEX_EVENT, w.GetId());
+	event.SetEventObject(&w);
+	w.GetEventHandler()->AddPendingEvent( event );
+
 	if (!m_visible) {
 		return;
 	}

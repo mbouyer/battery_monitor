@@ -47,12 +47,15 @@ class bmLog: public wxFrame
 	mpWindow *plotA;
 	mpWindow *plotV;
 	mpWindow *plotT;
+	double mp_scaleX;
+	double mp_posX;
 	bmLogStorage *bmlog_s;
 	int log_cookie;
 	void OnClose(wxCloseEvent & event);
 	void OnShow(wxShowEvent & event);
+	void OnScale(wxCommandEvent & event);
 	void logV2XY(std::vector<struct bm_log_entry> &, std::vector<double> &,
 	    std::vector<double> &, std::vector<double> &,
 	    std::vector<double> &, int);
-	mpWindow *MakePlot(wxString);
+	mpWindow *MakePlot(wxString, wxWindowID);
 };
