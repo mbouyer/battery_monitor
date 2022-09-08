@@ -37,6 +37,7 @@
 
 bmLogStorage::bmLogStorage(wxString logPath)
 {
+	time_t previous_t = 0;
 	FilePath = logPath;
 	cur_log_entry = 0;
 	log_req_state = LOG_REQ_IDLE;
@@ -146,11 +147,20 @@ bmLogStorage::bmLogStorage(wxString logPath)
 			warn("flags: %s: conversion failed", e);
 			break;
 		}
-
+#if 0
 		printf("idx 0x%06x inst %2d volts %2.2f amps %3.3f temp %3d time %ld flags 0x%02x\n",
 		    log_entry.id, log_entry.instance,
 		    log_entry.volts, log_entry.amps,
 		    log_entry.temp, log_entry.time, log_entry.flags);
+#else
+		if (previous_t != 0 && log_entry.time != 0 &&
+		    previous_t != log_entry.time) {
+			printf("idx 0x%06x time %ld delta %ld flags 0x%02x\n",
+			    log_entry.id, log_entry.time, log_entry.time - previous_t,
+			    log_entry.flags);
+		}
+		previous_t = log_entry.time;
+#endif
 		log_entries.push_back(log_entry);
 	}
 	_log.close();
