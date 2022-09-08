@@ -173,6 +173,12 @@ void bmFrame::OnClose(wxCloseEvent & event)
 		config->Write(_T("/Position/y"), (long) y);
 		config->Write(_T("/Position/w"), (long) w);
 		config->Write(_T("/Position/h"), (long) h);
+		wxp->bmlog->GetClientSize(&w, &h);
+		wxp->bmlog->GetPosition(&x, &y);
+		config->Write(_T("/Log/x"), (long) x);
+		config->Write(_T("/Log/y"), (long) y);
+		config->Write(_T("/Log/w"), (long) w);
+		config->Write(_T("/Log/h"), (long) h);
 		config->Flush();
 		std::cout <<  "saved config file ... " << std::endl;
 	}

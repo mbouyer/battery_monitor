@@ -36,6 +36,7 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	: wxFrame(parent, wxID_ANY, _T("bmLog"))
 {
 	wxString logPath;
+	int x, y, w, h;
 
 	if (!config || !config->Read("/Log/path", &logPath)) {
 		const char *home = getenv("HOME");
@@ -49,6 +50,15 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 		}
 	}
 	bmlog_s = new bmLogStorage(logPath);
+
+	if (config) {
+		x = config->ReadLong("/Log/x", -1);
+		y = config->ReadLong("/Log/Y", -1);
+		w = config->ReadLong("/Log/w", -1);
+		h = config->ReadLong("/Log/h", -1);
+	} else {
+		x = y = w = h = -1;
+	}
 
 	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(bmLog::OnClose));
 	Connect(wxEVT_SHOW, wxShowEventHandler(bmLog::OnShow));
@@ -101,6 +111,7 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 	mainsizer->Add( plotT, 1, wxEXPAND | wxALL, 5 );
 	SetAutoLayout(true);
 	SetSizer(mainsizer);
+	this->SetSize(x, y, w, h);
 }
 
 void
