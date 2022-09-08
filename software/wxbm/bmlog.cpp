@@ -66,7 +66,9 @@ bmLog::bmLog(wxWindow* parent, wxConfig *config)
 
 	plotA = MakePlot(wxT("%.2fA"));
 	plotV = MakePlot(wxT("%.2fV"));
-	plotT = MakePlot(wxT("%.2fC"));
+	wchar_t degChar = 0x00B0;
+	wxString degFmt = wxT("%.1f");
+	plotT = MakePlot(degFmt + degChar);
 	std::vector<bm_log_entry_t> entries;
 	log_cookie = bmlog_s->getLogBlock(-1, entries);
 	std::cout << "log_cookie " << log_cookie << std::endl;
