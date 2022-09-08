@@ -198,8 +198,8 @@ bmLog::MakePlot(wxString yFormat)
 	plot->SetMargins(20, 20, 20, 70);
 	plot->AddLayer(xaxis);
 	plot->AddLayer(yaxis);
-	mpInfoCoords *nfo;
-	nfo = new mpInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH); 
+	bmInfoCoords *nfo;
+	nfo = new bmInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH, yFormat); 
 	nfo->SetLabelMode(mpX_DATETIME, mpX_LOCALTIME);
 	plot->AddLayer(nfo);
 	nfo->SetVisible(true);
