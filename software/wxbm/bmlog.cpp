@@ -193,6 +193,7 @@ bmLog::MakePlot(wxString yFormat)
 	yaxis->SetFont(graphFont);
 	xaxis->SetDrawOutsideMargins(false);
 	yaxis->SetDrawOutsideMargins(false);
+	xaxis->SetLabelMode(mpX_DATETIME, mpX_LOCALTIME);
 	yaxis->SetLabelFormat(yFormat);
 	plot->SetMargins(20, 20, 20, 70);
 	plot->AddLayer(xaxis);
