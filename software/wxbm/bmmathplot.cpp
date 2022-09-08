@@ -55,8 +55,19 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 	
 	const double dig  = floor( log( 128.0 / w.GetScaleX() ) / mpLN10 );
 	/* round step to 10mn */
-	const double step = floor(exp( mpLN10 * dig) / 600) * 600;
+	int step = floor(exp( mpLN10 * dig) / 600) * 600;
 	const double end  = w.GetPosX() + (double)extend / w.GetScaleX();
+
+	/* adjust step for large values */
+	if (step > 3600 * 24) {
+		step = floor(step / 86400.0) * 86400;
+	} else if (step > 3600 * 3) {
+		step = floor(step / 10800.0) * 10800;
+	} else if (step > 3600) {
+		step = floor(step / 3600.0) * 3600;
+	} else if (step > 1800) {
+		step = floor(step / 1800.0) * 1800;
+	}
 
 	wxCoord tx, ty;
 	wxString s;
@@ -73,8 +84,8 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 		fmt = (wxT("%02.0f:%02.0f"));
 	}
 
-	double n0 = floor( (w.GetPosX() /* - (double)(extend - w.GetMarginLeft() - w.GetMarginRight())/ w.GetScaleX() */) / step ) * step ;
-	double n = 0;
+	int n0 = floor( (w.GetPosX() /* - (double)(extend - w.GetMarginLeft() - w.GetMarginRight())/ w.GetScaleX() */) / step ) * step ;
+	int n = 0;
 #ifdef MATHPLOT_DO_LOGGING
 	wxLogMessage(wxT("bmScaleX::Plot: dig: %f , step: %f, end: %f, n: %f"), dig, step, end, n0);
 #endif
@@ -91,29 +102,9 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 	for (n = n0; n < end; n += step) {
 		const int p = (int)((n - w.GetPosX()) * w.GetScaleX());
 #ifdef MATHPLOT_DO_LOGGING
-	wxLogMessage(wxT("bmScaleX::Plot: n: %f -> p = %d"), n, p);
+		wxLogMessage(wxT("bmScaleX::Plot: n: %f -> p = %d"), n, p);
 #endif
 		if ((p >= startPx) && (p <= endPx)) {
-			if (m_ticks) { // draw axis ticks
-				if (m_flags == mpALIGN_BORDER_BOTTOM)
-					dc.DrawLine( p, orgy, p, orgy-4);
-				else
-					dc.DrawLine( p, orgy, p, orgy+4);
-			} else { // draw grid dotted lines
-				m_pen.SetStyle(wxDOT);
-				dc.SetPen(m_pen);
-				if ((m_flags == mpALIGN_BOTTOM) && !m_drawOutsideMargins) {
-					dc.DrawLine( p, orgy+4, p, minYpx );
-				} else {
-					if ((m_flags == mpALIGN_TOP) && !m_drawOutsideMargins) {
-						dc.DrawLine( p, orgy-4, p, maxYpx );
-					} else {
-						dc.DrawLine( p, 0/*-w.GetScrY()*/, p, w.GetScrY() );
-					}
-				}
-				m_pen.SetStyle(wxSOLID);
-				dc.SetPen(m_pen);
-			}
 			// Write ticks labels in s string
 			if (m_labelType == mpX_DATETIME) {
 				when = (time_t)n;
@@ -154,14 +145,16 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 			maxExtent = (tx > maxExtent) ? tx : maxExtent; // Keep in mind max label width
 		}
 	}
-	// Actually draw labels, taking care of not overlapping them, and distributing them regularly
-	double labelStep = ceil((maxExtent + mpMIN_X_AXIS_LABEL_SEPARATION)/(w.GetScaleX()*step))*step;
-	for (n = n0; n < end; n += labelStep) {
+	// Actually draw ticks and labels, taking care of not overlapping them, and distributing them regularly
+	int labelStep = ceil((maxExtent + mpMIN_X_AXIS_LABEL_SEPARATION)/(w.GetScaleX()*step))*step;
+	for (n = n0; n < end; n += step) {
 		const int p = (int)((n - w.GetPosX()) * w.GetScaleX());
 #ifdef MATHPLOT_DO_LOGGING
 	wxLogMessage(wxT("bmScaleX::Plot: n_label = %f -> p_label = %d"), n, p);
 #endif
-		if ((p >= startPx) && (p <= endPx)) {
+		if ((p < startPx) || (p > endPx))
+			continue;
+		if ((n - n0) % labelStep == 0) {
 			// Write ticks labels in s string
 			if (m_labelType == mpX_DATETIME) {
 				when = (time_t)n;
@@ -189,9 +182,9 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 				double hh = floor(modulus/3600);
 				double mm = floor((modulus - hh*3600)/60);
 				double ss = modulus - hh*3600 - mm*60;
-#ifdef MATHPLOT_DO_LOGGING
+	#ifdef MATHPLOT_DO_LOGGING
 				wxLogMessage(wxT("%02.0f Hours, %02.0f minutes, %02.0f seconds"), sign*hh, mm, ss);
-#endif // MATHPLOT_DO_LOGGING
+	#endif // MATHPLOT_DO_LOGGING
 				if (fmt.Len() == 20) // Format with hours has 11 chars
 					s.Printf(fmt, sign*hh, mm);
 				else
@@ -203,7 +196,30 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 			} else {
 				dc.DrawText( s, p-tx/2, orgy+4);
 			}
+			m_pen.SetColour(*wxRED);
+			dc.SetPen(m_pen);
 		}
+		if (m_ticks) { // draw axis ticks
+			if (m_flags == mpALIGN_BORDER_BOTTOM)
+				dc.DrawLine( p, orgy, p, orgy-4);
+			else
+				dc.DrawLine( p, orgy, p, orgy+4);
+		} else { // draw grid dotted lines
+			m_pen.SetStyle(wxDOT);
+			dc.SetPen(m_pen);
+			if ((m_flags == mpALIGN_BOTTOM) && !m_drawOutsideMargins) {
+				dc.DrawLine( p, orgy+4, p, minYpx );
+			} else {
+				if ((m_flags == mpALIGN_TOP) && !m_drawOutsideMargins) {
+					dc.DrawLine( p, orgy-4, p, maxYpx );
+				} else {
+					dc.DrawLine( p, 0/*-w.GetScrY()*/, p, w.GetScrY() );
+				}
+			}
+			m_pen.SetStyle(wxSOLID);
+		}
+		m_pen.SetColour(*wxBLACK);
+		dc.SetPen(m_pen);
 	}
 
 	// Draw axis name
