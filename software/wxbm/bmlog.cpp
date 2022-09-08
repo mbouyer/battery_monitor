@@ -151,7 +151,6 @@ bmLog::OnClose(wxCloseEvent & WXUNUSED(event))
 void
 bmLog::OnShow(wxShowEvent &event)
 {
-	plotA->UpdateAll();
 	plotA->Fit();
 	plotV->Fit();
 	plotT->Fit();
