@@ -136,7 +136,7 @@ bmLog::logV2XY(std::vector<bm_log_entry_t> &e, std::vector<double> &D,
 			D.push_back(i * 600);
 		}
 		V.push_back(e[i].volts);
-		A.push_back(e[i].amps);
+		A.push_back(-e[i].amps);
 		if (e[i].temp != TEMP_INVAL) 
 			T.push_back(e[i].temp - 273);
 	}
