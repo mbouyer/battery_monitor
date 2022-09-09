@@ -26,7 +26,7 @@
  */
 
 #include <wx/wx.h>
-#include "bmstatus.h"
+#include "wxbm.h"
 #include "bmlog.h"
 #include "bmlogstorage.h"
 #include "bmmathplot.h"
@@ -37,9 +37,10 @@ static const int plotID_T = wxID_HIGHEST + 3;
 
 const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
 
-bmLog::bmLog(wxWindow* parent, wxConfig *config)
+bmLog::bmLog(wxWindow* parent)
 	: wxFrame(parent, wxID_ANY, _T("bmLog"))
 {
+	wxConfig *config = wxp->getConfig();
 	wxString logPath;
 	int x, y, w, h;
 

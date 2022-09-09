@@ -27,30 +27,12 @@
 
 #include <wx/wx.h>
 #include <iostream>
+#include "wxbm.h"
 #include "bmstatus.h"
 
-bmStatus::bmStatus(wxWindow *parent, wxConfig *config, wxWindowID id)
+bmStatus::bmStatus(wxWindow *parent, wxWindowID id)
 	: wxPanel(parent, id)
 {
-
-	int conf_valid = 0;
-	wxString path;
-	for(int i = 0; i < NINST; i++) {
-		if (config) {
-			path = wxString::Format(wxT("/Instance/%d"), i);
-			if (config->Read(path, &Tname[i])) {
-				conf_valid++;
-			}
-		}
-	}
-	if (conf_valid == 0 && config) {
-		for(int i = 0; i < NINST; i++) {
-			Tname[i] = wxString::Format(wxT("string:%d"), i);
-			path = wxString::Format(wxT("/Instance/%d"), i);
-			config->Write(path, Tname[i]);
-		}
-	}
-	
 	bmsizer = new wxFlexGridSizer(4, 5, 5);
 
 	wxSizerFlags datafl(0);
@@ -66,20 +48,13 @@ bmStatus::bmStatus(wxWindow *parent, wxConfig *config, wxWindowID id)
 	bmsizer->Add(LABELTEXT("courant(A)"), labelfl);
 	bmsizer->Add(LABELTEXT("temperature(C)"), labelfl);
 	for(int i = 0; i < NINST; i++) {
+		wxWindow *Tlabel = wxp->getTlabel(i, this);
+		if (Tlabel == NULL)
+			continue;
 		Tvolts[i] = new wxStaticText(this, -1, wxT(""));
 		Tamps[i] = new wxStaticText(this, -1, wxT(""));
 		Ttemp[i] = new wxStaticText(this, -1, wxT(""));
-		wxString type = Tname[i].BeforeFirst(':');
-		wxString name = Tname[i].AfterFirst(':');
-		if (type.IsSameAs(_T("string"))) {
-			bmsizer->Add(new wxStaticText(this, -1, name), datafl);
-		} else if (type.IsSameAs(_T("img"))) {
-			wxBitmap bitmap(name, wxBITMAP_TYPE_ANY);
-			bmsizer->Add(new wxStaticBitmap(this, -1, bitmap),
-			    datafl);
-		} else  {
-			continue;
-		}
+		bmsizer->Add(Tlabel, datafl);
 		bmsizer->Add(Tvolts[i], datafl);
 		bmsizer->Add(Tamps[i], datafl);
 		bmsizer->Add(Ttemp[i], datafl);

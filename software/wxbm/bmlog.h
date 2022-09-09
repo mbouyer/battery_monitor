@@ -35,7 +35,7 @@ struct bm_log_entry;
 class bmLog: public wxFrame
 {
   public:
-	bmLog(wxWindow* parent, wxConfig *config);
+	bmLog(wxWindow* parent);
 	void address(int);
 	void addLogEntry(int sid, double volts, double amps,
 		       int temp, int instance, int idx, bool last);

@@ -28,17 +28,14 @@
 #include <wx/combobox.h>
 #include <wx/config.h>
 
-#define NINST 4
-
 class bmStatus: public wxPanel
 {
   public:
-	bmStatus(wxWindow *parent, wxConfig *config, wxWindowID id=wxID_ANY);
+	bmStatus(wxWindow *parent, wxWindowID id=wxID_ANY);
 	void address(int);
 	void values(int, double, double, double, bool);
   private:
 	wxFlexGridSizer *mainsizer, *bmsizer;
-	wxString Tname[NINST];
 	wxStaticText *Tvolts[NINST];
 	wxStaticText *Tamps[NINST];
 	wxStaticText *Ttemp[NINST];

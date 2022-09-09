@@ -28,8 +28,12 @@
 #ifndef _WXbm_H_
 #define _WXbm_H_
 
+#include <wx/config.h>
+
 class bmFrame;
 class bmLog;
+
+#define NINST 4
 
 class wxbm : public wxApp
 {
@@ -46,11 +50,15 @@ class wxbm : public wxApp
 	    int temp, int instance, int idx, bool last);
 	void logError(int sid, int err);
 	void logTick(void);
+	wxWindow *getTlabel(int, wxWindow *);
+	inline wxConfig *getConfig(void) { return config; };
 
 	bmLog *bmlog;
   private:
+	wxConfig *config;
 	bmFrame *frame;
 	bool getlog;
+	wxString Tname[NINST];
 };
 
 extern wxbm *wxp;

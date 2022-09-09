@@ -60,7 +60,6 @@ public:
 	bool instV[NINST];
 
 private:
-	wxConfig *config;
 	wxPanel *mainpanel;
 	wxBoxSizer *mainsizer;
 	wxMenuBar *menubar;
@@ -80,7 +79,7 @@ bmFrame::bmFrame(const wxString& title)
 {
 	int x, y, w, h;
 
-	config = new wxConfig(wxbm::AppName());
+	wxConfig *config = wxp->getConfig();
 	if (config) {
 		x = config->ReadLong("/Position/X", -1);
 		y = config->ReadLong("/Position/Y", -1);
@@ -115,13 +114,13 @@ bmFrame::bmFrame(const wxString& title)
 	Connect(myID_F_SHOWLOG, wxEVT_COMMAND_MENU_SELECTED,
 		wxCommandEventHandler(bmFrame::OnShowLog));
 
-	bmstatus = new bmStatus(this, config);
+	bmstatus = new bmStatus(this);
 	mainsizer->Add( bmstatus, 0, wxEXPAND | wxALL, 5 );
 
 	SetSizerAndFit(mainsizer);
 	this->SetSize(x, y, w, h);
 
-	wxp->bmlog = new bmLog(this, config);
+	wxp->bmlog = new bmLog(this);
 	wxIcon icon(icons8_car_battery_30);
 	wxp->bmlog->SetIcon(icon);
 	wxp->bmlog->Show(false);
@@ -166,6 +165,7 @@ void bmFrame::OnQuit(wxCommandEvent & WXUNUSED(event))
 
 void bmFrame::OnClose(wxCloseEvent & event)
 {
+	wxConfig *config = wxp->getConfig();
 	if (config) {
 		int x, y, w, h;
 		GetClientSize(&w, &h);
@@ -215,8 +215,29 @@ bool wxbm::OnInit()
 	if (!wxApp::OnInit())
 		return false;
 
+	config = new wxConfig(AppName());
 	wxIcon icon(icons8_car_battery_30);
+	int conf_valid = 0;
+	wxString path;
+
 	wxp = this;
+
+	for(int i = 0; i < NINST; i++) {
+		if (config) {
+			path = wxString::Format(wxT("/Instance/%d"), i);
+			if (config->Read(path, &Tname[i])) {
+				conf_valid++;
+			}
+		}
+	}
+	if (conf_valid == 0 && config) {
+		for(int i = 0; i < NINST; i++) {
+			Tname[i] = wxString::Format(wxT("string:%d"), i);
+			path = wxString::Format(wxT("/Instance/%d"), i);
+			config->Write(path, Tname[i]);
+		}
+	}
+
 	frame = new bmFrame(AppName());
 	frame->SetIcon(icon);
 	frame->Show(true);
@@ -304,4 +325,22 @@ wxbm::logTick(void)
 {
 	if (getlog)
 		bmlog->tick();
+}
+
+
+wxWindow *
+wxbm::getTlabel(int i, wxWindow * parent)
+{
+	wxString type = Tname[i].BeforeFirst(':');
+	wxString name = Tname[i].AfterFirst(':');
+
+	std::cout << "getTlabel " << i << " " << Tname[i] << " " << type << " " << name << std::endl;
+	if (type.IsSameAs(_T("string"))) {
+		return new wxStaticText(parent, -1, name);
+	} else if (type.IsSameAs(_T("img"))) {
+		wxBitmap bitmap(name, wxBITMAP_TYPE_ANY);
+		return new wxStaticBitmap(parent, -1, bitmap);
+	} else  {
+		return NULL;
+	}
 }
