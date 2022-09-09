@@ -122,6 +122,8 @@ bmFrame::bmFrame(const wxString& title)
 	this->SetSize(x, y, w, h);
 
 	wxp->bmlog = new bmLog(this, config);
+	wxIcon icon(icons8_car_battery_30);
+	wxp->bmlog->SetIcon(icon);
 	wxp->bmlog->Show(false);
 }
 
