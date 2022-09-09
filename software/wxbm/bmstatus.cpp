@@ -33,7 +33,7 @@
 bmStatus::bmStatus(wxWindow *parent, wxWindowID id)
 	: wxPanel(parent, id)
 {
-	bmsizer = new wxFlexGridSizer(4, 5, 5);
+	bmsizer = new wxFlexGridSizer(4, NINST + 1, 5);
 
 	wxSizerFlags datafl(0);
 	datafl.Expand().Right();
