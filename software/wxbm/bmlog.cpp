@@ -75,11 +75,17 @@ bmLog::bmLog(wxWindow* parent)
 	wchar_t degChar = 0x00B0;
 	wxString degFmt = wxT("%.1f");
 	plotT = MakePlot(degFmt + degChar, plotID_T);
+
+	for (int i = 0; i < NINST; i++) {
+		InstLabel[i] = wxp->getTlabel(i, this);
+	}
 	std::vector<bm_log_entry_t> entries;
 	log_cookie = bmlog_s->getLogBlock(-1, entries);
 	std::cout << "log_cookie " << log_cookie << std::endl;
 	if (log_cookie >= 0) {
 		for (int i = 0; i < NINST; i++) {
+			if (InstLabel[i] == NULL)
+				continue;
 			std::vector<double> D;
 			std::vector<double> V;
 			std::vector<double> A;
@@ -114,10 +120,46 @@ bmLog::bmLog(wxWindow* parent)
 			}
 		}
 	}
-	mainsizer = new wxBoxSizer( wxVERTICAL );
-	mainsizer->Add( plotA, 1, wxEXPAND | wxALL, 5 );
-	mainsizer->Add( plotV, 1, wxEXPAND | wxALL, 5 );
-	mainsizer->Add( plotT, 1, wxEXPAND | wxALL, 5 );
+	wxBoxSizer *mainsizer = new wxBoxSizer( wxVERTICAL );
+	wxBoxSizer *bsizerA = new wxBoxSizer( wxHORIZONTAL );
+	wxBoxSizer *bsizerV = new wxBoxSizer( wxHORIZONTAL );
+	wxBoxSizer *bsizerT = new wxBoxSizer( wxHORIZONTAL );
+	wxFlexGridSizer *lsizerA = new wxFlexGridSizer(2, NINST, 5);
+	wxFlexGridSizer *lsizerV = new wxFlexGridSizer(2, NINST, 5);
+	wxFlexGridSizer *lsizerT = new wxFlexGridSizer(2, NINST, 5);
+	wxSizerFlags datafl(0);
+	datafl.Expand().Right();
+	wxSizerFlags labelfl(0);
+	labelfl.Centre();
+	for (int i = 0; i < NINST; i++) {
+		if (InstLabel[i] == NULL)
+			continue;
+		lsizerA->Add(InstLabel[i], labelfl);
+		InstA[i] = new wxStaticText(this, -1, wxT("     A"));
+		InstA[i]->SetForegroundColour(*instcolor[i]);
+		/* each time we add a wxWindow we need to allocate a new one */
+		InstLabel[i] = wxp->getTlabel(i, this);
+		lsizerA->Add(InstA[i], datafl);
+		lsizerV->Add(InstLabel[i], labelfl);
+		InstV[i] = new wxStaticText(this, -1, wxT("     V"));
+		InstV[i]->SetForegroundColour(*instcolor[i]);
+		lsizerV->Add(InstV[i], datafl);
+		InstLabel[i] = wxp->getTlabel(i, this);
+		lsizerT->Add(InstLabel[i], labelfl);
+		InstT[i] = new wxStaticText(this, -1, wxT("     T"));
+		InstT[i]->SetForegroundColour(*instcolor[i]);
+		lsizerT->Add(InstT[i], datafl);
+	}
+	bsizerA->Add(lsizerA, 0, wxEXPAND, 5);
+	bsizerA->Add(plotA, 1, wxEXPAND | wxALL, 5);
+	bsizerV->Add(lsizerV, 0, wxEXPAND, 5);
+	bsizerV->Add(plotV, 1, wxEXPAND | wxALL, 5);
+	bsizerT->Add(lsizerT, 0, wxEXPAND, 5);
+	bsizerT->Add(plotT, 1, wxEXPAND | wxALL, 5);
+
+	mainsizer->Add( bsizerA, 1, wxEXPAND | wxALL, 5 );
+	mainsizer->Add( bsizerV, 1, wxEXPAND | wxALL, 5 );
+	mainsizer->Add( bsizerT, 1, wxEXPAND | wxALL, 5 );
 	SetAutoLayout(true);
 	SetSizer(mainsizer);
 	this->SetSize(x, y, w, h);
