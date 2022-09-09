@@ -78,47 +78,30 @@ bmLog::bmLog(wxWindow* parent)
 
 	for (int i = 0; i < NINST; i++) {
 		InstLabel[i] = wxp->getTlabel(i, this);
-	}
-	std::vector<bm_log_entry_t> entries;
-	log_cookie = bmlog_s->getLogBlock(-1, entries);
-	std::cout << "log_cookie " << log_cookie << std::endl;
-	if (log_cookie >= 0) {
-		for (int i = 0; i < NINST; i++) {
-			if (InstLabel[i] == NULL)
-				continue;
-			std::vector<double> D;
-			std::vector<double> V;
-			std::vector<double> A;
-			std::vector<double> T;
-			logV2XY(entries, D, V, A, T, i);
-			if (D.size() == 0)
-				continue;
-			std::cout << "log entries " << D.size() << " " << A.size() << " " << V.size() << " " << T.size() << " " << i << std::endl;
-			wxPen vectorpen(*instcolor[i], 2, wxSOLID);
+		if (InstLabel[i] == NULL)
+			continue;
+		wxPen vectorpen(*instcolor[i], 2, wxSOLID);
 
-			mpFXYVector* Alayer = new mpFXYVector(_("Amps"));
-			Alayer->SetData(D, A);
-			Alayer->SetContinuity(true);
-			Alayer->SetPen(vectorpen);
-			Alayer->SetDrawOutsideMargins(false);
-			plotA->AddLayer(Alayer);
+		Alayer[i] = new mpFXYVector(_("Amps"));
+		Alayer[i]->Clear();
+		Alayer[i]->SetContinuity(true);
+		Alayer[i]->SetPen(vectorpen);
+		Alayer[i]->SetDrawOutsideMargins(false);
+		plotA->AddLayer(Alayer[i]);
 
-			mpFXYVector* Vlayer = new mpFXYVector(_("Volts"));
-			Vlayer->SetData(D, V);
-			Vlayer->SetContinuity(true);
-			Vlayer->SetPen(vectorpen);
-			Vlayer->SetDrawOutsideMargins(false);
-			plotV->AddLayer(Vlayer);
+		Vlayer[i] = new mpFXYVector(_("Volts"));
+		Vlayer[i]->Clear();
+		Vlayer[i]->SetContinuity(true);
+		Vlayer[i]->SetPen(vectorpen);
+		Vlayer[i]->SetDrawOutsideMargins(false);
+		plotV->AddLayer(Vlayer[i]);
 
-			if (T.size() == D.size()) {
-				mpFXYVector* Tlayer = new mpFXYVector(_("Temp"));
-				Tlayer->SetData(D, T);
-				Tlayer->SetContinuity(true);
-				Tlayer->SetPen(vectorpen);
-				Tlayer->SetDrawOutsideMargins(false);
-				plotT->AddLayer(Tlayer);
-			}
-		}
+		Tlayer[i] = new mpFXYVector(_("Temp"));
+		Tlayer[i]->Clear();
+		Tlayer[i]->SetContinuity(true);
+		Tlayer[i]->SetPen(vectorpen);
+		Tlayer[i]->SetDrawOutsideMargins(false);
+		plotT->AddLayer(Tlayer[i]);
 	}
 	wxBoxSizer *mainsizer = new wxBoxSizer( wxVERTICAL );
 	wxBoxSizer *bsizerA = new wxBoxSizer( wxHORIZONTAL );
@@ -166,28 +149,65 @@ bmLog::bmLog(wxWindow* parent)
 }
 
 void
-bmLog::logV2XY(std::vector<bm_log_entry_t> &e, std::vector<double> &D, 
-    std::vector<double> &V, std::vector<double> &A,
-    std::vector<double> &T, int instance)
+bmLog::logV2XY(std::vector<double> &D, std::vector<double> &V,
+    std::vector<double> &A, std::vector<double> &T, int instance)
 {
-	std::cout << "logV2XY size " <<  e.size() << std::endl;
-	for (int i = 0; i < e.size(); i++) {
-		if (e[i].instance != instance)
+	std::cout << "logV2XY size " <<  log_entries.size() << std::endl;
+	for (int i = 0; i < log_entries.size(); i++) {
+		if (log_entries[i].instance != instance)
 			continue;
 		/*
 		 * of time is known, use it
 		 * otherwise, just compute time from start of block
 		 */
-		if (e[i].time != 0) {
-			D.push_back(e[i].time);
+		if (log_entries[i].time != 0) {
+			D.push_back(log_entries[i].time);
 		} else {
 			D.push_back(i * 600);
 		}
-		V.push_back(e[i].volts);
-		A.push_back(-e[i].amps);
-		if (e[i].temp != TEMP_INVAL) 
-			T.push_back(e[i].temp - 273);
+		V.push_back(log_entries[i].volts);
+		A.push_back(-log_entries[i].amps);
+		if (log_entries[i].temp != TEMP_INVAL) 
+			T.push_back(log_entries[i].temp - 273);
 	}
+}
+
+void
+bmLog::showGraphs(void)
+{
+	for (int i = 0; i < NINST; i++) {
+		if (InstLabel[i] == NULL)
+			continue;
+		std::vector<double> D;
+		std::vector<double> V;
+		std::vector<double> A;
+		std::vector<double> T;
+		logV2XY(D, V, A, T, i);
+		if (D.size() == 0)
+			continue;
+		std::cout << "log entries " << D.size() << " " << A.size() << " " << V.size() << " " << T.size() << " " << i << std::endl;
+		Alayer[i]->Clear();
+		Vlayer[i]->Clear();
+		Tlayer[i]->Clear();
+		Alayer[i]->SetData(D, A);
+		Vlayer[i]->SetData(D, V);
+		if (T.size() == D.size()) {
+			Tlayer[i]->SetData(D, T);
+			Tlayer[i]->SetVisible(true);
+		} else {
+			/* set up a fake, invisible data layer at 20C*/
+			T.clear();
+			for (int e = 0; e < D.size(); e++)
+				T.push_back(20);
+			Tlayer[i]->SetData(D, T);
+			Tlayer[i]->SetVisible(false);
+		}
+	}
+	plotA->Fit();
+	plotV->Fit();
+	plotT->Fit();
+	mp_scaleX = plotA->GetScaleX();
+	mp_posX = plotA->GetXpos();
 }
 
 void
@@ -199,9 +219,11 @@ bmLog::OnClose(wxCloseEvent & WXUNUSED(event))
 void
 bmLog::OnShow(wxShowEvent &event)
 {
-	plotA->Fit();
-	plotV->Fit();
-	plotT->Fit();
+	log_cookie = bmlog_s->getLogBlock(-1, log_entries);
+	std::cout << "log_cookie " << log_cookie << std::endl;
+	if (log_cookie >= 0) {
+		showGraphs();
+	}
 	event.Skip();
 }
 
@@ -227,6 +249,7 @@ bmLog::OnScale(wxCommandEvent &event)
 	}
 	if (n_scaleX == mp_scaleX && n_posX == mp_posX)
 		return;
+
 	mp_scaleX = n_scaleX;
 	mp_posX = n_posX;
 

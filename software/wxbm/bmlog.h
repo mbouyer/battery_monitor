@@ -47,6 +47,9 @@ class bmLog: public wxFrame
 	wxStaticText *InstA[NINST];
 	wxStaticText *InstV[NINST];
 	wxStaticText *InstT[NINST];
+	mpFXYVector *Alayer[NINST];
+	mpFXYVector *Vlayer[NINST];
+	mpFXYVector *Tlayer[NINST];
 	mpWindow *plotA;
 	mpWindow *plotV;
 	mpWindow *plotT;
@@ -54,11 +57,12 @@ class bmLog: public wxFrame
 	double mp_posX;
 	bmLogStorage *bmlog_s;
 	int log_cookie;
+	std::vector<struct bm_log_entry> log_entries;
 	void OnClose(wxCloseEvent & event);
 	void OnShow(wxShowEvent & event);
 	void OnScale(wxCommandEvent & event);
-	void logV2XY(std::vector<struct bm_log_entry> &, std::vector<double> &,
-	    std::vector<double> &, std::vector<double> &,
-	    std::vector<double> &, int);
+	void logV2XY(std::vector<double> &, std::vector<double> &,
+	             std::vector<double> &, std::vector<double> &, int);
+	void showGraphs(void);
 	mpWindow *MakePlot(wxString, wxWindowID);
 };
