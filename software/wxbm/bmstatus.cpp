@@ -82,6 +82,8 @@ bmStatus::address(int a)
 void
 bmStatus::values(int i, double v, double a, double t, bool valid)
 {
+	if (Tvolts[i] == NULL)
+		return;
 	if (valid) {
 		Tvolts[i]->SetLabel(wxString::Format(_T("%.2f"), v));
 		Tamps[i]->SetLabel(wxString::Format(_T("%.2f"), -a));
