@@ -27,7 +27,7 @@
 
 #include <wx/combobox.h>
 #include <wx/config.h>
-#include <mathplot.h>
+#include "bmmathplot.h" 
 
 class bmLogStorage;
 struct bm_log_entry;
@@ -47,20 +47,22 @@ class bmLog: public wxFrame
 	wxStaticText *InstA[NINST];
 	wxStaticText *InstV[NINST];
 	wxStaticText *InstT[NINST];
-	mpFXYVector *Alayer[NINST];
-	mpFXYVector *Vlayer[NINST];
-	mpFXYVector *Tlayer[NINST];
+	bmFXYVector *Alayer[NINST];
+	bmFXYVector *Vlayer[NINST];
+	bmFXYVector *Tlayer[NINST];
 	mpWindow *plotA;
 	mpWindow *plotV;
 	mpWindow *plotT;
 	double mp_scaleX;
 	double mp_posX;
+	time_t mp_startX, mp_endX;
 	bmLogStorage *bmlog_s;
 	int log_cookie;
 	std::vector<struct bm_log_entry> log_entries;
 	void OnClose(wxCloseEvent & event);
 	void OnShow(wxShowEvent & event);
 	void OnScale(wxCommandEvent & event);
+	void updateStats(void);
 	void logV2XY(std::vector<double> &, std::vector<double> &,
 	             std::vector<double> &, std::vector<double> &, int);
 	void showGraphs(void);

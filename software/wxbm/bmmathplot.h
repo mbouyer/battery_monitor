@@ -34,4 +34,15 @@ protected:
     wxString m_fmt;
 };
 
+/* mpFXYVector reimplementation which allows to read the data vectors */
+class bmFXYVector : public mpFXYVector
+{
+	public:
+		inline bmFXYVector(wxString name = wxEmptyString, int flags = mpALIGN_NE) : mpFXYVector(name, flags) {};
+		inline void GetData(const std::vector<double> *&x, const std::vector<double> *&y) {
+			x = &m_xs;
+			y = &m_ys;
+		}
+};
+
 #endif // _BM_MATHPLOT_H_

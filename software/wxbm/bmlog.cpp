@@ -82,21 +82,21 @@ bmLog::bmLog(wxWindow* parent)
 			continue;
 		wxPen vectorpen(*instcolor[i], 2, wxSOLID);
 
-		Alayer[i] = new mpFXYVector(_("Amps"));
+		Alayer[i] = new bmFXYVector(_("Amps"));
 		Alayer[i]->Clear();
 		Alayer[i]->SetContinuity(true);
 		Alayer[i]->SetPen(vectorpen);
 		Alayer[i]->SetDrawOutsideMargins(false);
 		plotA->AddLayer(Alayer[i]);
 
-		Vlayer[i] = new mpFXYVector(_("Volts"));
+		Vlayer[i] = new bmFXYVector(_("Volts"));
 		Vlayer[i]->Clear();
 		Vlayer[i]->SetContinuity(true);
 		Vlayer[i]->SetPen(vectorpen);
 		Vlayer[i]->SetDrawOutsideMargins(false);
 		plotV->AddLayer(Vlayer[i]);
 
-		Tlayer[i] = new mpFXYVector(_("Temp"));
+		Tlayer[i] = new bmFXYVector(_("Temp"));
 		Tlayer[i]->Clear();
 		Tlayer[i]->SetContinuity(true);
 		Tlayer[i]->SetPen(vectorpen);
@@ -208,6 +208,7 @@ bmLog::showGraphs(void)
 	plotT->Fit();
 	mp_scaleX = plotA->GetScaleX();
 	mp_posX = plotA->GetXpos();
+	updateStats();
 }
 
 void
@@ -259,6 +260,80 @@ bmLog::OnScale(wxCommandEvent &event)
 	plotV->SetScaleX(n_scaleX);
 	plotT->SetPosX(n_posX);
 	plotT->SetScaleX(n_scaleX);
+	updateStats();
+}
+
+void
+bmLog::updateStats(void)
+{
+	double box[4];
+	plotA->GetBoundingBox(box);
+	mp_startX = round(box[0]);
+	mp_endX = round(box[1]);
+
+	std::cout << " start " << mp_startX << " end " << mp_endX << std::endl;
+
+	for (int i = 0; i < NINST; i++) {
+		if (InstLabel[i] == NULL)
+			continue;
+
+		const std::vector<double> *D;
+		const std::vector<double> *A;
+		const std::vector<double> *V;
+		const std::vector<double> *T;
+		double duration = 0;
+		time_t prev_time = -1;
+		time_t time;
+		double Ah = 0;
+		double Vmin = 10000;
+		double Vmax = -10000;
+		double Tmin = 10000;
+		double Tmax = -100000;
+
+		Alayer[i]->GetData(D, A);
+		Vlayer[i]->GetData(D, V);
+		if (Tlayer[i]->IsVisible()) {
+			Tlayer[i]->GetData(D, T);
+		} else {
+			T = NULL;
+		}
+
+		for (int e = 0; e < D->size(); e++) {
+			time_t time;
+			time = (*D)[e];
+			if (time < mp_startX || time > mp_endX)
+				continue;
+			if (prev_time >= 0) {
+				duration += time - prev_time;
+			}
+			prev_time = time;
+
+			Ah += (*A)[e];
+			if (Vmin > (*V)[e])
+				Vmin = (*V)[e];
+			if (Vmax < (*V)[e])
+				Vmax = (*V)[e];
+			if (T != NULL) {
+				if (Tmin > (*T)[e])
+					Tmin = (*T)[e];
+				if (Tmax < (*T)[e])
+					Tmax = (*T)[e];
+			}
+		}
+		std::cout << "duration " << duration << std::endl;
+		Ah = Ah / 3600.0 * 600.0; 
+		InstA[i]->SetLabel(wxString::Format(_T("%.2fAh"), Ah));
+		InstV[i]->SetLabel(wxString::Format(_T("%.2fV %.2fV"), Vmin, Vmax));
+		if (T != NULL) {
+			wchar_t degChar = 0x00B0;
+			wxString degFmt = wxT("%.1f");
+			InstT[i]->SetLabel(wxString::Format(
+			    degFmt + degChar + _T(" ") + degFmt + degChar,
+			    Tmin, Tmax));
+		} else {
+			InstT[i]->SetLabel(_T(""));
+		}
+	}
 }
 
 void
