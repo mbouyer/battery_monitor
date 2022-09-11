@@ -267,10 +267,8 @@ bmLog::OnScale(wxCommandEvent &event)
 void
 bmLog::updateStats(void)
 {
-	double box[4];
-	plotA->GetBoundingBox(box);
-	mp_startX = round(box[0]);
-	mp_endX = round(box[1]);
+	mp_startX = plotA->GetDesiredXmin();
+	mp_endX = plotA->GetDesiredXmax();
 
 	std::cout << " start " << mp_startX << " end " << mp_endX << std::endl;
 
