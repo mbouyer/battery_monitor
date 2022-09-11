@@ -116,18 +116,18 @@ bmLog::bmLog(wxWindow* parent)
 		if (InstLabel[i] == NULL)
 			continue;
 		lsizerA->Add(InstLabel[i], labelfl);
-		InstA[i] = new wxStaticText(this, -1, wxT("-----.--Ah ---.--A"));
+		InstA[i] = new wxStaticText(this, -1, wxT("XXXX.XXAh XX.XXA"));
 		InstA[i]->SetForegroundColour(*instcolor[i]);
 		/* each time we add a wxWindow we need to allocate a new one */
 		InstLabel[i] = wxp->getTlabel(i, this);
 		lsizerA->Add(InstA[i], datafl);
 		lsizerV->Add(InstLabel[i], labelfl);
-		InstV[i] = new wxStaticText(this, -1, wxT("--.--V --.--V"));
+		InstV[i] = new wxStaticText(this, -1, wxT("XX.XXV XX.XXV"));
 		InstV[i]->SetForegroundColour(*instcolor[i]);
 		lsizerV->Add(InstV[i], datafl);
 		InstLabel[i] = wxp->getTlabel(i, this);
 		lsizerT->Add(InstLabel[i], labelfl);
-		InstT[i] = new wxStaticText(this, -1, wxT("--.--C --.--C"));
+		InstT[i] = new wxStaticText(this, -1, wxT("XX.XXC XX.XXC"));
 		InstT[i]->SetForegroundColour(*instcolor[i]);
 		lsizerT->Add(InstT[i], datafl);
 	}
@@ -282,9 +282,11 @@ bmLog::updateStats(void)
 		const std::vector<double> *V;
 		const std::vector<double> *T;
 		double duration = 0;
+		int nentries = 0;
 		time_t prev_time = -1;
 		time_t time;
 		double Ah = 0;
+		double Aav;
 		double Vmin = 10000;
 		double Vmax = -10000;
 		double Tmin = 10000;
@@ -307,6 +309,7 @@ bmLog::updateStats(void)
 				duration += time - prev_time;
 			}
 			prev_time = time;
+			nentries++;
 
 			Ah += (*A)[e];
 			if (Vmin > (*V)[e])
@@ -321,8 +324,18 @@ bmLog::updateStats(void)
 			}
 		}
 		std::cout << "duration " << duration << std::endl;
+		Aav =  Ah / nentries;
 		Ah = Ah / 3600.0 * 600.0; 
-		InstA[i]->SetLabel(wxString::Format(_T("%.2fAh"), Ah));
+		wxString Aformat;
+		if (Ah >= 100 || Ah <= -100)
+			Aformat = _T("%.1fAh ");
+		else
+			Aformat = _T("%.2fAh ");
+		if (Aav >= 10 || Aav <= -10)
+			Aformat += _T("%.1fA");
+		else
+			Aformat += _T("%.2fA");
+		InstA[i]->SetLabel(wxString::Format(Aformat, Ah, Aav));
 		InstV[i]->SetLabel(wxString::Format(_T("%.2fV %.2fV"), Vmin, Vmax));
 		if (T != NULL) {
 			wchar_t degChar = 0x00B0;
