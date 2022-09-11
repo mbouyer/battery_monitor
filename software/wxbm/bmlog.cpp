@@ -220,6 +220,7 @@ bmLog::OnClose(wxCloseEvent & WXUNUSED(event))
 void
 bmLog::OnShow(wxShowEvent &event)
 {
+	log_entries.clear();
 	log_cookie = bmlog_s->getLogBlock(-1, log_entries);
 	std::cout << "log_cookie " << log_cookie << std::endl;
 	if (log_cookie >= 0) {
