@@ -44,6 +44,7 @@ class bmLog: public wxFrame
   private:
 	wxPanel *mainpanel;
 	wxWindow *InstLabel[NINST];
+	wxStaticText *InstAh[NINST];
 	wxStaticText *InstA[NINST];
 	wxStaticText *InstV[NINST];
 	wxStaticText *InstT[NINST];

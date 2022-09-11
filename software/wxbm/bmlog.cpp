@@ -105,7 +105,7 @@ bmLog::bmLog(wxWindow* parent)
 	}
 	wxBoxSizer *mainsizer = new wxBoxSizer( wxVERTICAL );
 	wxFlexGridSizer *graphsizer = new wxFlexGridSizer(2, 3, 5);
-	wxFlexGridSizer *lsizerA = new wxFlexGridSizer(2, NINST, 5);
+	wxFlexGridSizer *lsizerA = new wxFlexGridSizer(3, NINST, 5);
 	wxFlexGridSizer *lsizerV = new wxFlexGridSizer(2, NINST, 5);
 	wxFlexGridSizer *lsizerT = new wxFlexGridSizer(2, NINST, 5);
 	wxSizerFlags datafl(0);
@@ -116,11 +116,16 @@ bmLog::bmLog(wxWindow* parent)
 		if (InstLabel[i] == NULL)
 			continue;
 		lsizerA->Add(InstLabel[i], labelfl);
-		InstA[i] = new wxStaticText(this, -1, wxT("XXXX.XXAh XX.XXA"));
+		InstAh[i] = new wxStaticText(this, -1, wxT("XXXX.XXAh"),
+		    wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
+		InstAh[i]->SetForegroundColour(*instcolor[i]);
+		lsizerA->Add(InstAh[i], datafl);
+		InstA[i] = new wxStaticText(this, -1, wxT("XX.XXA"),
+		    wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
 		InstA[i]->SetForegroundColour(*instcolor[i]);
+		lsizerA->Add(InstA[i], datafl);
 		/* each time we add a wxWindow we need to allocate a new one */
 		InstLabel[i] = wxp->getTlabel(i, this);
-		lsizerA->Add(InstA[i], datafl);
 		lsizerV->Add(InstLabel[i], labelfl);
 		InstV[i] = new wxStaticText(this, -1, wxT("XX.XXV XX.XXV"));
 		InstV[i]->SetForegroundColour(*instcolor[i]);
@@ -328,14 +333,15 @@ bmLog::updateStats(void)
 		Ah = Ah / 3600.0 * 600.0; 
 		wxString Aformat;
 		if (Ah >= 100 || Ah <= -100)
-			Aformat = _T("%.1fAh ");
+			Aformat = _T("%.1fAh");
 		else
-			Aformat = _T("%.2fAh ");
+			Aformat = _T("%.2fAh");
+		InstAh[i]->SetLabel(wxString::Format(Aformat, Ah));
 		if (Aav >= 10 || Aav <= -10)
-			Aformat += _T("%.1fA");
+			Aformat = _T("%.1fA");
 		else
-			Aformat += _T("%.2fA");
-		InstA[i]->SetLabel(wxString::Format(Aformat, Ah, Aav));
+			Aformat = _T("%.2fA");
+		InstA[i]->SetLabel(wxString::Format(Aformat, Aav));
 		InstV[i]->SetLabel(wxString::Format(_T("%.2fV %.2fV"), Vmin, Vmax));
 		if (T != NULL) {
 			wchar_t degChar = 0x00B0;
