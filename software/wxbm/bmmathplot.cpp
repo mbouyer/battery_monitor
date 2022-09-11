@@ -97,13 +97,6 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 #ifdef MATHPLOT_DO_LOGGING
 	wxLogMessage(wxT("bmScaleX::Plot: dig: %f , step: %f, end: %f, n: %f ex: %d"), dig, step, end, n0, extend);
 #endif
-	printf("bmScaleX::Plot: posX %f, ", w.GetPosX());
-	printf(", scaleX %f", w.GetScaleX());
-	printf(", dig: %f", dig);
-	printf(", step: %d", step);
-	printf(", end: %f", end);
-	printf(", n: %d", n0);
-	printf(", ex: %d\n", extend);
 	wxCoord startPx = m_drawOutsideMargins ? 0 : w.GetMarginLeft();
 	wxCoord endPx   = m_drawOutsideMargins ? w.GetScrX() : w.GetScrX() - w.GetMarginRight();
 	wxCoord minYpx  = m_drawOutsideMargins ? 0 : w.GetMarginTop();
