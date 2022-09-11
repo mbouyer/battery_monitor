@@ -336,6 +336,7 @@ bmLogStorage::log_update(void)
 	int lasteinst = log_entries[laste].instance;
 	time_t now = time(NULL);
 	const char *home;
+	bool trusted = 1;
 
 	/*
 	 * update log times for this log block. We know that the last entry
@@ -351,9 +352,13 @@ bmLogStorage::log_update(void)
 			break;
 		if (log_entries[i].time != 0)
 			break;
-		if (i != laste && lasteinst == log_entries[i].instance)
+		if (i != laste && lasteinst == log_entries[i].instance) {
 			now -= 600; /* one log every 10mn */
+			trusted = 0;
+		}
 		log_entries[i].time = now;
+		if (trusted)
+			log_entries[i].flags |= LOGE_TRUSTTIME;
 		printf(" now 0x%ld\n", log_entries[i].time);
 		if (i < last_write_entry)
 			last_write_entry = 0; /* need to rewrite whole file */

@@ -51,6 +51,7 @@ typedef struct bm_log_entry {
 	time_t time;
 	int flags;
 #define LOGE_BOUNDARY	0x01
+#define LOGE_TRUSTTIME	0x02
 } bm_log_entry_t;
 
 class bmLogStorage {
