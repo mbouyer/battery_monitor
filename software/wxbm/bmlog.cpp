@@ -104,9 +104,7 @@ bmLog::bmLog(wxWindow* parent)
 		plotT->AddLayer(Tlayer[i]);
 	}
 	wxBoxSizer *mainsizer = new wxBoxSizer( wxVERTICAL );
-	wxBoxSizer *bsizerA = new wxBoxSizer( wxHORIZONTAL );
-	wxBoxSizer *bsizerV = new wxBoxSizer( wxHORIZONTAL );
-	wxBoxSizer *bsizerT = new wxBoxSizer( wxHORIZONTAL );
+	wxFlexGridSizer *graphsizer = new wxFlexGridSizer(2, 3, 5);
 	wxFlexGridSizer *lsizerA = new wxFlexGridSizer(2, NINST, 5);
 	wxFlexGridSizer *lsizerV = new wxFlexGridSizer(2, NINST, 5);
 	wxFlexGridSizer *lsizerT = new wxFlexGridSizer(2, NINST, 5);
@@ -118,31 +116,34 @@ bmLog::bmLog(wxWindow* parent)
 		if (InstLabel[i] == NULL)
 			continue;
 		lsizerA->Add(InstLabel[i], labelfl);
-		InstA[i] = new wxStaticText(this, -1, wxT("     A"));
+		InstA[i] = new wxStaticText(this, -1, wxT("-----.--Ah ---.--A"));
 		InstA[i]->SetForegroundColour(*instcolor[i]);
 		/* each time we add a wxWindow we need to allocate a new one */
 		InstLabel[i] = wxp->getTlabel(i, this);
 		lsizerA->Add(InstA[i], datafl);
 		lsizerV->Add(InstLabel[i], labelfl);
-		InstV[i] = new wxStaticText(this, -1, wxT("     V"));
+		InstV[i] = new wxStaticText(this, -1, wxT("--.--V --.--V"));
 		InstV[i]->SetForegroundColour(*instcolor[i]);
 		lsizerV->Add(InstV[i], datafl);
 		InstLabel[i] = wxp->getTlabel(i, this);
 		lsizerT->Add(InstLabel[i], labelfl);
-		InstT[i] = new wxStaticText(this, -1, wxT("     T"));
+		InstT[i] = new wxStaticText(this, -1, wxT("--.--C --.--C"));
 		InstT[i]->SetForegroundColour(*instcolor[i]);
 		lsizerT->Add(InstT[i], datafl);
 	}
-	bsizerA->Add(lsizerA, 0, wxEXPAND, 5);
-	bsizerA->Add(plotA, 1, wxEXPAND | wxALL, 5);
-	bsizerV->Add(lsizerV, 0, wxEXPAND, 5);
-	bsizerV->Add(plotV, 1, wxEXPAND | wxALL, 5);
-	bsizerT->Add(lsizerT, 0, wxEXPAND, 5);
-	bsizerT->Add(plotT, 1, wxEXPAND | wxALL, 5);
+	graphsizer->Add(lsizerA, 0,  wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	graphsizer->Add(plotA, 1, wxEXPAND | wxALL, 5);
+	graphsizer->Add(lsizerV, 0,  wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	graphsizer->Add(plotV, 1, wxEXPAND | wxALL, 5);
+	graphsizer->Add(lsizerT, 0,  wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	graphsizer->Add(plotT, 1, wxEXPAND | wxALL, 5);
 
-	mainsizer->Add( bsizerA, 1, wxEXPAND | wxALL, 5 );
-	mainsizer->Add( bsizerV, 1, wxEXPAND | wxALL, 5 );
-	mainsizer->Add( bsizerT, 1, wxEXPAND | wxALL, 5 );
+	graphsizer->AddGrowableCol(1, 1);
+	graphsizer->AddGrowableRow(0, 1);
+	graphsizer->AddGrowableRow(1, 1);
+	graphsizer->AddGrowableRow(2, 1);
+
+	mainsizer->Add( graphsizer, 1, wxEXPAND | wxALL, 5 );
 	SetAutoLayout(true);
 	SetSizer(mainsizer);
 	this->SetSize(x, y, w, h);
