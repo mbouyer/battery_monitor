@@ -73,6 +73,8 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 		step = floor(step / 3600.0) * 3600;
 	} else if (step > 1800) {
 		step = floor(step / 1800.0) * 1800;
+	} else if (step < 600) {
+		step = 600;
 	}
 
 	wxCoord tx, ty;
@@ -90,11 +92,18 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 		fmt = (wxT("%02.0f:%02.0f"));
 	}
 
-	int n0 = floor( (w.GetPosX() /* - (double)(extend - w.GetMarginLeft() - w.GetMarginRight())/ w.GetScaleX() */) / step ) * step ;
-	int n = 0;
+	time_t n0 = floor( (w.GetPosX() /* - (double)(extend - w.GetMarginLeft() - w.GetMarginRight())/ w.GetScaleX() */) / step ) * step ;
+	time_t n = 0;
 #ifdef MATHPLOT_DO_LOGGING
-	wxLogMessage(wxT("bmScaleX::Plot: dig: %f , step: %f, end: %f, n: %f"), dig, step, end, n0);
+	wxLogMessage(wxT("bmScaleX::Plot: dig: %f , step: %f, end: %f, n: %f ex: %d"), dig, step, end, n0, extend);
 #endif
+	printf("bmScaleX::Plot: posX %f, ", w.GetPosX());
+	printf(", scaleX %f", w.GetScaleX());
+	printf(", dig: %f", dig);
+	printf(", step: %d", step);
+	printf(", end: %f", end);
+	printf(", n: %d", n0);
+	printf(", ex: %d\n", extend);
 	wxCoord startPx = m_drawOutsideMargins ? 0 : w.GetMarginLeft();
 	wxCoord endPx   = m_drawOutsideMargins ? w.GetScrX() : w.GetScrX() - w.GetMarginRight();
 	wxCoord minYpx  = m_drawOutsideMargins ? 0 : w.GetMarginTop();
