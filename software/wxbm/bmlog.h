@@ -43,7 +43,7 @@ class bmLog: public wxFrame
 	void tick(void);
   private:
 	wxPanel *mainpanel;
-	wxTextCtrl *timezoom;
+	wxTextCtrl *timescale;
 	wxStaticText *timerange;
 	wxWindow *InstLabel[NINST];
 	wxStaticText *InstAh[NINST];
@@ -65,6 +65,7 @@ class bmLog: public wxFrame
 	void OnClose(wxCloseEvent & event);
 	void OnShow(wxShowEvent & event);
 	void OnScale(wxCommandEvent & event);
+	void OnScaleChange(wxCommandEvent & event);
 	void updateStats(void);
 	void logV2XY(std::vector<double> &, std::vector<double> &,
 	             std::vector<double> &, std::vector<double> &, int);

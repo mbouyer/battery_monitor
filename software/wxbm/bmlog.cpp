@@ -34,11 +34,42 @@
 static const int plotID_A = wxID_HIGHEST + 1;
 static const int plotID_V = wxID_HIGHEST + 2;
 static const int plotID_T = wxID_HIGHEST + 3;
-static const int zoomID = wxID_HIGHEST + 7;
+static const int scaleID = wxID_HIGHEST + 7;
 static const int nextID = wxID_HIGHEST + 8;
 static const int prevID = wxID_HIGHEST + 9;
 
 const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
+
+static wxString
+date2string(time_t date)
+{	
+	struct tm tm;
+	wxString fmt = (wxT("%04d-%02d-%02d %02d:%02d"));
+
+	localtime_r(&date, &tm);
+	tm.tm_mon++;
+	tm.tm_year+= 1900;
+
+	return wxString::Format(fmt, tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min);
+}
+
+static wxString
+time2string(time_t duration)
+{
+	wxString fmt;
+	int days, hours, minutes;
+	days = duration / 86400;
+	duration -= days * 86400;
+	hours = duration / 3600;
+	duration -= hours * 3600;
+	minutes = duration / 60;
+
+	if (days > 0) {
+		return wxString::Format(_T("%dj%02dh%02dm"), days, hours, minutes);
+	} else {
+		return wxString::Format(_T("%dh%02dm"), hours, minutes);
+	}
+}
 
 bmLog::bmLog(wxWindow* parent)
 	: wxFrame(parent, wxID_ANY, _T("bmLog"))
@@ -77,15 +108,17 @@ bmLog::bmLog(wxWindow* parent)
 	wxBoxSizer *topsizer = new wxBoxSizer(wxHORIZONTAL);
 	wxButton *prev = new wxButton(this, prevID, _T("<-"));
 	wxButton *next = new wxButton(this, prevID, _T("->"));
-	timezoom = new wxTextCtrl(this, zoomID, _T("--d--h--m"),
+	timescale = new wxTextCtrl(this, scaleID, _T("--d--h--m"),
 	    wxDefaultPosition, wxDefaultSize,
 	    wxTE_PROCESS_ENTER | wxTE_CENTRE);
+	timescale->Connect(wxEVT_TEXT_ENTER,
+	    wxCommandEventHandler(bmLog::OnScaleChange), NULL, this);
 	timerange = new wxStaticText(this, -1,
 	    _T("-------- --:-- -------- --:--"),
 	    wxDefaultPosition, wxDefaultSize,
 	    wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);
 	topsizer->Add(prev, 0, wxEXPAND | wxALL, 5 );
-	topsizer->Add(timezoom, 1, wxEXPAND | wxALL, 5 );
+	topsizer->Add(timescale, 1, wxEXPAND | wxALL, 5 );
 	topsizer->Add(timerange, 1, wxEXPAND | wxALL, 5 );
 	topsizer->Add(next, 0, wxEXPAND | wxALL, 5 );
 	mainsizer->Add(topsizer, 0, wxEXPAND | wxALL, 1 );
@@ -289,35 +322,55 @@ bmLog::OnScale(wxCommandEvent &event)
 	updateStats();
 }
 
-static wxString
-date2string(time_t date)
-{	
-	struct tm tm;
-	wxString fmt = (wxT("%04d-%02d-%02d %02d:%02d"));
-
-	localtime_r(&date, &tm);
-	tm.tm_mon++;
-	tm.tm_year+= 1900;
-
-	return wxString::Format(fmt, tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min);
-}
-
-static wxString
-time2string(time_t duration)
+void
+bmLog::OnScaleChange(wxCommandEvent &event)
 {
-	wxString fmt;
-	int days, hours, minutes;
-	days = duration / 86400;
-	duration -= days * 86400;
-	hours = duration / 3600;
-	duration -= hours * 3600;
-	minutes = duration / 60;
-
-	if (days > 0) {
-		return wxString::Format(_T("%dj%02dh%02dm"), days, hours, minutes);
-	} else {
-		return wxString::Format(_T("%dh%02dm"), hours, minutes);
+	wxString value = timescale->GetValue();
+	std::cout << "scale text " << value << std::endl;
+	char buf[80];
+	char *l, *e;
+	strncpy(buf, value.c_str(), sizeof(buf));
+	time_t duration = 0;
+	l = buf;
+	e = strsep(&l, "j");
+	if (l != NULL) {
+		printf(" j %s\n", e);
+		errno = 0;
+		duration += strtol(e, NULL, 0) * 86400;
+		if (errno)
+			goto error;
+	} else
+		l = buf;
+	e = strsep(&l, "h");
+	if (l != NULL) {
+		printf(" h %s\n", e);
+		errno = 0;
+		duration += strtol(e, NULL, 0) * 3600;
+		if (errno)
+			goto error;
+	} else
+		l = buf;
+	e = strsep(&l, "m");
+	if (l != NULL) {
+		printf(" m %s\n", e);
+		errno = 0;
+		duration += strtol(e, NULL, 0) * 60;
+		if (errno)
+			goto error;
 	}
+	if (duration == 0) {
+error:
+		timescale->ChangeValue(time2string(mp_endX - mp_startX));
+		return;
+	}
+	std::cout << "scale seconds " << duration << std::endl;
+	double startY, endY, centerX;
+	startY = plotA->GetDesiredYmin();
+	endY = plotA->GetDesiredYmax();
+	centerX = (mp_startX + mp_endX) / 2.0;
+	plotA->Fit(centerX - duration / 2, centerX + duration / 2,
+	    startY, endY, NULL);
+	/* setting plotA will trigger a OnScale event */
 }
 
 void
@@ -328,7 +381,7 @@ bmLog::updateStats(void)
 
 	std::cout << " start " << mp_startX << " end " << mp_endX << std::endl;
 	timerange->SetLabel(date2string(mp_startX) + _T(" ") + date2string(mp_endX));
-	timezoom->ChangeValue(time2string(mp_endX - mp_startX));
+	timescale->ChangeValue(time2string(mp_endX - mp_startX));
 
 	for (int i = 0; i < NINST; i++) {
 		if (InstLabel[i] == NULL)
