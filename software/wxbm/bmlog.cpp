@@ -290,7 +290,7 @@ bmLog::OnScale(wxCommandEvent &event)
 }
 
 static wxString
-time2string(time_t date)
+date2string(time_t date)
 {	
 	struct tm tm;
 	wxString fmt = (wxT("%04d-%02d-%02d %02d:%02d"));
@@ -302,6 +302,24 @@ time2string(time_t date)
 	return wxString::Format(fmt, tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min);
 }
 
+static wxString
+time2string(time_t duration)
+{
+	wxString fmt;
+	int days, hours, minutes;
+	days = duration / 86400;
+	duration -= days * 86400;
+	hours = duration / 3600;
+	duration -= hours * 3600;
+	minutes = duration / 60;
+
+	if (days > 0) {
+		return wxString::Format(_T("%dj%02dh%02dm"), days, hours, minutes);
+	} else {
+		return wxString::Format(_T("%dh%02dm"), hours, minutes);
+	}
+}
+
 void
 bmLog::updateStats(void)
 {
@@ -309,7 +327,8 @@ bmLog::updateStats(void)
 	mp_endX = plotA->GetDesiredXmax();
 
 	std::cout << " start " << mp_startX << " end " << mp_endX << std::endl;
-	timerange->SetLabel(time2string(mp_startX) + _T(" ") + time2string(mp_endX));
+	timerange->SetLabel(date2string(mp_startX) + _T(" ") + date2string(mp_endX));
+	timezoom->ChangeValue(time2string(mp_endX - mp_startX));
 
 	for (int i = 0; i < NINST; i++) {
 		if (InstLabel[i] == NULL)
