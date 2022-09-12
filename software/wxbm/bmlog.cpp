@@ -34,6 +34,9 @@
 static const int plotID_A = wxID_HIGHEST + 1;
 static const int plotID_V = wxID_HIGHEST + 2;
 static const int plotID_T = wxID_HIGHEST + 3;
+static const int zoomID = wxID_HIGHEST + 7;
+static const int nextID = wxID_HIGHEST + 8;
+static const int prevID = wxID_HIGHEST + 9;
 
 const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
 
@@ -70,6 +73,23 @@ bmLog::bmLog(wxWindow* parent)
 	Connect(wxEVT_SHOW, wxShowEventHandler(bmLog::OnShow));
 	Connect(SCALEX_EVENT, wxCommandEventHandler(bmLog::OnScale));
 
+	wxBoxSizer *mainsizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer *topsizer = new wxBoxSizer(wxHORIZONTAL);
+	wxButton *prev = new wxButton(this, prevID, _T("<-"));
+	wxButton *next = new wxButton(this, prevID, _T("->"));
+	timezoom = new wxTextCtrl(this, zoomID, _T("--d--h--m"),
+	    wxDefaultPosition, wxDefaultSize,
+	    wxTE_PROCESS_ENTER | wxTE_CENTRE);
+	timerange = new wxStaticText(this, -1,
+	    _T("-------- --:-- -------- --:--"),
+	    wxDefaultPosition, wxDefaultSize,
+	    wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);
+	topsizer->Add(prev, 0, wxEXPAND | wxALL, 5 );
+	topsizer->Add(timezoom, 1, wxEXPAND | wxALL, 5 );
+	topsizer->Add(timerange, 1, wxEXPAND | wxALL, 5 );
+	topsizer->Add(next, 0, wxEXPAND | wxALL, 5 );
+	mainsizer->Add(topsizer, 0, wxEXPAND | wxALL, 1 );
+
 	plotA = MakePlot(wxT("%.2fA"), plotID_A);
 	plotV = MakePlot(wxT("%.2fV"), plotID_V);
 	wchar_t degChar = 0x00B0;
@@ -103,7 +123,6 @@ bmLog::bmLog(wxWindow* parent)
 		Tlayer[i]->SetDrawOutsideMargins(false);
 		plotT->AddLayer(Tlayer[i]);
 	}
-	wxBoxSizer *mainsizer = new wxBoxSizer( wxVERTICAL );
 	wxFlexGridSizer *graphsizer = new wxFlexGridSizer(2, 3, 5);
 	wxFlexGridSizer *lsizerA = new wxFlexGridSizer(3, NINST, 5);
 	wxFlexGridSizer *lsizerV = new wxFlexGridSizer(2, NINST, 5);
@@ -270,6 +289,19 @@ bmLog::OnScale(wxCommandEvent &event)
 	updateStats();
 }
 
+static wxString
+time2string(time_t date)
+{	
+	struct tm tm;
+	wxString fmt = (wxT("%04d-%02d-%02d %02d:%02d"));
+
+	localtime_r(&date, &tm);
+	tm.tm_mon++;
+	tm.tm_year+= 1900;
+
+	return wxString::Format(fmt, tm.tm_year, tm.tm_mon, tm.tm_mday, tm.tm_hour, tm.tm_min);
+}
+
 void
 bmLog::updateStats(void)
 {
@@ -277,6 +309,7 @@ bmLog::updateStats(void)
 	mp_endX = plotA->GetDesiredXmax();
 
 	std::cout << " start " << mp_startX << " end " << mp_endX << std::endl;
+	timerange->SetLabel(time2string(mp_startX) + _T(" ") + time2string(mp_endX));
 
 	for (int i = 0; i < NINST; i++) {
 		if (InstLabel[i] == NULL)

@@ -43,6 +43,8 @@ class bmLog: public wxFrame
 	void tick(void);
   private:
 	wxPanel *mainpanel;
+	wxTextCtrl *timezoom;
+	wxStaticText *timerange;
 	wxWindow *InstLabel[NINST];
 	wxStaticText *InstAh[NINST];
 	wxStaticText *InstA[NINST];
