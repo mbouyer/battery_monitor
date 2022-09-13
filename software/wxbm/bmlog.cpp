@@ -107,7 +107,11 @@ bmLog::bmLog(wxWindow* parent)
 	wxBoxSizer *mainsizer = new wxBoxSizer(wxVERTICAL);
 	wxBoxSizer *topsizer = new wxBoxSizer(wxHORIZONTAL);
 	wxButton *prev = new wxButton(this, prevID, _T("<-"));
+	prev->Connect(wxEVT_BUTTON,
+	    wxCommandEventHandler(bmLog::OnPrevious), NULL, this);
 	wxButton *next = new wxButton(this, prevID, _T("->"));
+	next->Connect(wxEVT_BUTTON,
+	    wxCommandEventHandler(bmLog::OnNext), NULL, this);
 	timescale = new wxTextCtrl(this, scaleID, _T("--d--h--m"),
 	    wxDefaultPosition, wxDefaultSize,
 	    wxTE_PROCESS_ENTER | wxTE_CENTRE);
@@ -368,6 +372,50 @@ error:
 	startY = plotA->GetDesiredYmin();
 	endY = plotA->GetDesiredYmax();
 	centerX = (mp_startX + mp_endX) / 2.0;
+	plotA->Fit(centerX - duration / 2, centerX + duration / 2,
+	    startY, endY, NULL);
+	/* setting plotA will trigger a OnScale event */
+}
+
+void
+bmLog::OnPrevious(wxCommandEvent &event)
+{
+	time_t duration = mp_endX - mp_startX;
+	time_t log_start = log_entries[0].time;
+	double startY, endY, centerX;
+	startY = plotA->GetDesiredYmin();
+	endY = plotA->GetDesiredYmax();
+	centerX = (mp_startX + mp_endX) / 2.0;
+	centerX -= duration;
+	if (centerX <= log_start) {
+		/* XXX previous entry */
+		std::cout << "previous" << std::endl;
+		centerX = (mp_startX + mp_endX) / 2.0;
+	} else if (centerX < log_start + duration / 2.0) {
+		centerX = log_start + duration / 2.0;
+	}
+	plotA->Fit(centerX - duration / 2, centerX + duration / 2,
+	    startY, endY, NULL);
+	/* setting plotA will trigger a OnScale event */
+}
+
+void
+bmLog::OnNext(wxCommandEvent &event)
+{
+	time_t duration = mp_endX - mp_startX;
+	time_t log_end = log_entries[log_entries.size() - 1].time;
+	double startY, endY, centerX;
+	startY = plotA->GetDesiredYmin();
+	endY = plotA->GetDesiredYmax();
+	centerX = (mp_startX + mp_endX) / 2.0;
+	centerX += duration;
+	if (centerX >= log_end) {
+		/* XXX next entry */
+		std::cout << "next" << std::endl;
+		centerX = (mp_startX + mp_endX) / 2.0;
+	} else if (centerX > log_end - duration / 2.0) {
+		centerX = log_end - duration / 2.0;
+	}
 	plotA->Fit(centerX - duration / 2, centerX + duration / 2,
 	    startY, endY, NULL);
 	/* setting plotA will trigger a OnScale event */
