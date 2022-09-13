@@ -412,6 +412,7 @@ bmLogStorage::getLogBlock(int cookie, std::vector<bm_log_entry_t> &entries)
 			break;
 	}
 	cookie++;
+	entries.clear();
 	/* copy block to provided vector */
 	for (int i = cookie; i < log_entries.size(); i++) {
 		if (log_entries[i].flags & LOGE_BOUNDARY)
