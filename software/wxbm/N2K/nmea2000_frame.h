@@ -51,7 +51,7 @@ class nmea2000_frame {
 	virtual ~nmea2000_frame() {};
 	inline bool is_pdu1() const
 	    { return (((frame->can_id >> 16) & 0xff) < 240); };
-	    
+	
 	inline int getsrc() const { return (frame->can_id & 0xff); };
 	inline int getdst() const
 	    { return (is_pdu1() ? (frame->can_id >> 8) & 0xff : -1); };
@@ -124,13 +124,13 @@ class nmea2000_frame {
 		data[i+1] = (v >>  8) & 0xff;
 		data[i] = v & 0xff;
 	    }
-	    
+	
     protected:
 	struct can_frame *frame;
 	uint8_t *data;
     private:
 	struct can_frame _frame;
-	inline void init() 
+	inline void init()
 	    { frame = &_frame;
 	      memset(frame, 0, sizeof(struct can_frame));
 	      data = frame->data;

@@ -120,8 +120,8 @@ wxDialog(parent, wxID_ANY, _T("NMEA2000"), wxDefaultPosition, wxSize( -1,-1 ), w
     m_panelIfSelectProperties->SetSizer(m_SizerIfSelectProperties);
     m_notebookProperties->AddPage( m_panelIfSelectProperties, _T("Interface"), false );
 
-    m_SizerDialogBox->Add( m_notebookProperties, 1, wxEXPAND | wxALL, 5 );  
- 
+    m_SizerDialogBox->Add( m_notebookProperties, 1, wxEXPAND | wxALL, 5 );
+
     bSizer = new wxBoxSizer( wxHORIZONTAL );
 
     m_buttonOK = new wxButton( this, wxID_ANY, _T("&OK"), wxDefaultPosition, wxDefaultSize, 0 );
@@ -129,7 +129,7 @@ wxDialog(parent, wxID_ANY, _T("NMEA2000"), wxDefaultPosition, wxSize( -1,-1 ), w
 
     m_Cancel = new wxButton( this, wxID_ANY, _T("&Cancel"), wxDefaultPosition
     , wxDefaultSize, 0 );
-    m_Cancel->SetDefault(); 
+    m_Cancel->SetDefault();
     bSizer->Add( m_Cancel, 0, wxALL, 5 );
 
     m_SizerDialogBox->Add( bSizer, 0, wxALIGN_CENTER, 5 );
@@ -137,10 +137,10 @@ wxDialog(parent, wxID_ANY, _T("NMEA2000"), wxDefaultPosition, wxSize( -1,-1 ), w
     this->Layout();
     m_SizerDialogBox->Fit( this );
 
-    this->Centre( wxBOTH );       
+    this->Centre( wxBOTH );
     m_buttonOK->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler( NMEA2000PropertiesDialog::OnNMEA2000PropertiesOKClick ), NULL, this );
     m_Cancel->Connect( wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(
-        NMEA2000PropertiesDialog::OnNMEA2000PropertiesCancelClick ), NULL, this );  
+        NMEA2000PropertiesDialog::OnNMEA2000PropertiesCancelClick ), NULL, this );
 }
 
 NMEA2000PropertiesDialog::~NMEA2000PropertiesDialog( )
@@ -165,7 +165,7 @@ void NMEA2000PropertiesDialog::OnNMEA2000PropertiesCancelClick( wxCommandEvent& 
 
 void NMEA2000PropertiesDialog::NMEA2000PropertiesConfig(void)
 {
-	int selected; 
+	int selected;
 	if (m_ListIfSelectProperties != NULL) {
 	    selected = m_ListIfSelectProperties->GetSelection();
 	    if (selected == wxNOT_FOUND) {

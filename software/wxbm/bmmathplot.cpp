@@ -22,7 +22,7 @@ bmScaleX::bmScaleX(wxString name, int flags) :
 // Minimum axis label separation
 #define mpMIN_X_AXIS_LABEL_SEPARATION 64
 
-wxDEFINE_EVENT(SCALEX_EVENT, wxCommandEvent);       
+wxDEFINE_EVENT(SCALEX_EVENT, wxCommandEvent);
 
 void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 {
@@ -41,9 +41,9 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 	if (m_flags == mpALIGN_CENTER)
 	orgy   = w.y2p(0); //(int)(w.GetPosY() * w.GetScaleY());
 	if (m_flags == mpALIGN_TOP) {
-		if (m_drawOutsideMargins) 
+		if (m_drawOutsideMargins)
 			orgy = X_BORDER_SEPARATION;
-		else 
+		else
 			orgy = w.GetMarginTop();
 	}
 	if (m_flags == mpALIGN_BOTTOM) {
@@ -58,7 +58,7 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 	orgy = 1;//-dc.LogicalToDeviceY(0);
 
 	dc.DrawLine( 0, orgy, w.GetScrX(), orgy);
-	
+
 	const double dig  = floor( log( 128.0 / w.GetScaleX() ) / mpLN10 );
 	/* round step to 10mn */
 	int step = floor(exp( mpLN10 * dig) / 600) * 600;
@@ -101,7 +101,7 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 	wxCoord endPx   = m_drawOutsideMargins ? w.GetScrX() : w.GetScrX() - w.GetMarginRight();
 	wxCoord minYpx  = m_drawOutsideMargins ? 0 : w.GetMarginTop();
 	wxCoord maxYpx  = m_drawOutsideMargins ? w.GetScrY() : w.GetScrY() - w.GetMarginBottom();
-	
+
 	tmp=-65535;
 	int labelH = 0; // Control labels heigth to decide where to put axis name (below labels or on top of axis)
 	int maxExtent = 0;
@@ -272,9 +272,9 @@ void bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 		int mouseY = ((wxMouseEvent&)event).GetY();
 		xVal = w.p2x(mouseX);
 		yVal = w.p2y(mouseY);
-		
+
 		m_content.Clear();
-		
+
 		yStr.Printf(m_fmt, yVal);
 		if (m_labelType == mpX_DATETIME) {
 			when = (time_t) xVal;

@@ -27,7 +27,7 @@
 
 #include <wx/combobox.h>
 #include <wx/config.h>
-#include "bmmathplot.h" 
+#include "bmmathplot.h"
 
 class bmLogStorage;
 struct bm_log_entry;

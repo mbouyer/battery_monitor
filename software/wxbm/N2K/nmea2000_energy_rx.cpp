@@ -40,7 +40,7 @@ bool nmea2000_battery_status_rx::handle(const nmea2000_frame &f)
 
 	if (addr != f.getsrc() && nmea2000P->getaddress() != -1) {
 		static const unsigned int dst_pgns[] = {PRIVATE_LOG} ;
-		addr = f.getsrc(); 
+		addr = f.getsrc();
 		printf("new bm address %d\n", addr);
 		for (int i = 0;
 		    i < sizeof(dst_pgns) / sizeof(dst_pgns[0]); i++) {

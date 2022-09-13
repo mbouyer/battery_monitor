@@ -302,7 +302,7 @@ bmLogStorage::tick(void)
 		timersub(&now, &last_ev, &diff);
 		if (diff.tv_sec >= 1) {
 			/* timeout, resend last command */
-			printf("timeout cmd %d sid 0x%x idx 0x%x\n", 
+			printf("timeout cmd %d sid 0x%x idx 0x%x\n",
 			    log_req.cmd, log_req.sid, log_req.idx);
 			cur_log_entry = 0;
 			sendreq();

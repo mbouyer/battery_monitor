@@ -80,7 +80,7 @@ private:
 	uint8_t ident;
 	inline void init()
 	    { userdata = (uint8_t *)malloc(fastlen);
-	      data = userdata; ; 
+	      data = userdata; ;
 	      ident = 0;
 	    }
 };

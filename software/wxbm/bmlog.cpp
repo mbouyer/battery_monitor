@@ -42,7 +42,7 @@ const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
 
 static wxString
 date2string(time_t date)
-{	
+{
 	struct tm tm;
 	wxString fmt = (wxT("%04d-%02d-%02d %02d:%02d"));
 
@@ -225,7 +225,7 @@ bmLog::logV2XY(std::vector<double> &D, std::vector<double> &V,
 		}
 		V.push_back(log_entries[i].volts);
 		A.push_back(-log_entries[i].amps);
-		if (log_entries[i].temp != TEMP_INVAL) 
+		if (log_entries[i].temp != TEMP_INVAL)
 			T.push_back(log_entries[i].temp - 273);
 	}
 }
@@ -435,7 +435,7 @@ bmLog::updateStats(void)
 		}
 		std::cout << "duration " << duration << std::endl;
 		Aav =  Ah / nentries;
-		Ah = Ah / 3600.0 * 600.0; 
+		Ah = Ah / 3600.0 * 600.0;
 		wxString Aformat;
 		if (Ah >= 100 || Ah <= -100)
 			Aformat = _T("%.1fAh");
@@ -503,7 +503,7 @@ bmLog::MakePlot(wxString yFormat, wxWindowID id)
 	plot->AddLayer(xaxis);
 	plot->AddLayer(yaxis);
 	bmInfoCoords *nfo;
-	nfo = new bmInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH, yFormat); 
+	nfo = new bmInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH, yFormat);
 	nfo->SetLabelMode(mpX_DATETIME, mpX_LOCALTIME);
 	plot->AddLayer(nfo);
 	nfo->SetVisible(true);

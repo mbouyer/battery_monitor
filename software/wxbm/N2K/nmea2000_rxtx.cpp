@@ -72,7 +72,7 @@ bool nmea2000_fastframe_rx::handle(const nmea2000_frame &f)
 		}
 		cur_idx = _idx;
 	}
-	
+
 	if (len == 0) {
 		cur_idx = -1;
 		return fast_handle(*this);

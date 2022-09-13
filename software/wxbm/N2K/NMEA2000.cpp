@@ -38,7 +38,7 @@
 #include "NMEA2000.h"
 #include "nmea2000_defs_tx.h"
 #include "nmea2000_defs_rx.h"
-#include "NMEA2000Properties.h" 
+#include "NMEA2000Properties.h"
 
 nmea2000 *nmea2000P;
 
@@ -56,7 +56,7 @@ nmea2000::nmea2000(void) {
 
 nmea2000::~nmea2000(void)
 {
-    if (GetThread() &&      
+    if (GetThread() &&
 	GetThread()->IsRunning()) {
 	GetThread()->Delete();
 	GetThread()->Wait();
@@ -162,7 +162,7 @@ wxThread::ExitCode nmea2000::Entry()
 	default:
 		sleep(1);
 	}
-			
+
     }
     return (wxThread::ExitCode)0;
 }
@@ -233,7 +233,7 @@ void nmea2000::handle_address_claim(const nmea2000_frame &n2kf)
 		break;
 	}
 	// defend our address. if we can't right now restart the whole process
-	if (!nmea2000_txP->iso_address_claim.send(sock)) 
+	if (!nmea2000_txP->iso_address_claim.send(sock))
 		state = DOCLAIM;
 }
 
@@ -275,7 +275,7 @@ bool nmea2000::send_bypgn(int pgn, bool force) {
 void nmea2000::tx_enable(int i, bool en) {
 	nmea2000_txP->enable(i, en);
 }
-	
+
 const nmea2000_desc *nmea2000::get_rx_byindex(int i) {
 	return nmea2000_rxP->get_byindex(i);
 }

@@ -49,7 +49,7 @@ public:
 	typedef enum dataup {
 		data_values = 0,
 		data_status,
-	} dataup_t; 
+	} dataup_t;
 	void wake(dataup_t);
 	int addr;
 	int group;
@@ -262,12 +262,12 @@ bool wxbm::OnCmdLineParsed(wxCmdLineParser& parser)
 
 #define APPNAME "wxbm"
 
-wxString wxbm::AppName() 
+wxString wxbm::AppName()
 {
 	static wxString s(APPNAME);
 	return s;
 }
-wxString wxbm::ErrMsgPrefix() 
+wxString wxbm::ErrMsgPrefix()
 {
 	static wxString s(APPNAME ": ");
 	return s;
