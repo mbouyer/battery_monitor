@@ -31,6 +31,12 @@
 #include "bmlogstorage.h"
 #include "bmmathplot.h"
 
+#ifdef DEBUG            
+#define DBG(a) {a;}
+#else
+#define DBG(a) /* */
+#endif
+
 static const int plotID_A = wxID_HIGHEST + 1;
 static const int plotID_V = wxID_HIGHEST + 2;
 static const int plotID_T = wxID_HIGHEST + 3;
@@ -214,7 +220,7 @@ void
 bmLog::logV2XY(std::vector<double> &D, std::vector<double> &V,
     std::vector<double> &A, std::vector<double> &T, int instance)
 {
-	std::cout << "logV2XY size " <<  log_entries.size() << std::endl;
+	DBG(std::cout << "logV2XY size " <<  log_entries.size() << std::endl);
 	for (int i = 0; i < log_entries.size(); i++) {
 		if (log_entries[i].instance != instance)
 			continue;
@@ -247,7 +253,7 @@ bmLog::showGraphs(void)
 		logV2XY(D, V, A, T, i);
 		if (D.size() == 0)
 			continue;
-		std::cout << "log entries " << D.size() << " " << A.size() << " " << V.size() << " " << T.size() << " " << i << std::endl;
+		DBG(std::cout << "log entries " << D.size() << " " << A.size() << " " << V.size() << " " << T.size() << " " << i << std::endl);
 		Alayer[i]->Clear();
 		Vlayer[i]->Clear();
 		Tlayer[i]->Clear();
@@ -283,7 +289,7 @@ void
 bmLog::OnShow(wxShowEvent &event)
 {
 	log_cookie = bmlog_s->getLogBlock(-1, log_entries);
-	std::cout << "log_cookie " << log_cookie << std::endl;
+	DBG(std::cout << "log_cookie " << log_cookie << std::endl);
 	if (log_cookie >= 0) {
 		showGraphs();
 	}
@@ -329,7 +335,6 @@ void
 bmLog::OnScaleChange(wxCommandEvent &event)
 {
 	wxString value = timescale->GetValue();
-	std::cout << "scale text " << value << std::endl;
 	char buf[80];
 	char *l, *e;
 	strncpy(buf, value.c_str(), sizeof(buf));
@@ -337,7 +342,6 @@ bmLog::OnScaleChange(wxCommandEvent &event)
 	l = buf;
 	e = strsep(&l, "j");
 	if (l != NULL) {
-		printf(" j %s\n", e);
 		errno = 0;
 		duration += strtol(e, NULL, 0) * 86400;
 		if (errno)
@@ -346,7 +350,6 @@ bmLog::OnScaleChange(wxCommandEvent &event)
 		l = buf;
 	e = strsep(&l, "h");
 	if (l != NULL) {
-		printf(" h %s\n", e);
 		errno = 0;
 		duration += strtol(e, NULL, 0) * 3600;
 		if (errno)
@@ -355,7 +358,6 @@ bmLog::OnScaleChange(wxCommandEvent &event)
 		l = buf;
 	e = strsep(&l, "m");
 	if (l != NULL) {
-		printf(" m %s\n", e);
 		errno = 0;
 		duration += strtol(e, NULL, 0) * 60;
 		if (errno)
@@ -366,7 +368,7 @@ error:
 		timescale->ChangeValue(time2string(mp_endX - mp_startX));
 		return;
 	}
-	std::cout << "scale seconds " << duration << std::endl;
+	DBG(std::cout << "scale seconds " << duration << std::endl);
 	double startY, endY, centerX;
 	startY = plotA->GetDesiredYmin();
 	endY = plotA->GetDesiredYmax();
@@ -390,7 +392,7 @@ bmLog::OnPrevious(wxCommandEvent &event)
 		centerX = (mp_startX + mp_endX) / 2.0;
 		/* previous entry */
 		int new_coockie = bmlog_s->getPrevLogBlock(log_cookie, log_entries);
-		std::cout << "previous " << new_coockie << std::endl;
+		DBG(std::cout << "previous " << new_coockie << std::endl);
 		if (new_coockie < 0) {
 			/* no previous block */
 			centerX = (mp_startX + mp_endX) / 2.0;
@@ -420,7 +422,7 @@ bmLog::OnNext(wxCommandEvent &event)
 	if (centerX >= log_end) {
 		/* next entry */
 		int new_coockie = bmlog_s->getNextLogBlock(log_cookie, log_entries);
-		std::cout << "next " << new_coockie << std::endl;
+		DBG(std::cout << "next " << new_coockie << std::endl);
 		if (new_coockie < 0) {
 			/* no next block */
 			centerX = (mp_startX + mp_endX) / 2.0;
@@ -443,7 +445,7 @@ bmLog::updateStats(void)
 	mp_startX = plotA->GetDesiredXmin();
 	mp_endX = plotA->GetDesiredXmax();
 
-	std::cout << " start " << mp_startX << " end " << mp_endX << std::endl;
+	DBG(std::cout << " start " << mp_startX << " end " << mp_endX << std::endl);
 	timerange->SetLabel(date2string(mp_startX) + _T(" ") + date2string(mp_endX));
 	timescale->ChangeValue(time2string(mp_endX - mp_startX));
 
@@ -497,7 +499,7 @@ bmLog::updateStats(void)
 					Tmax = (*T)[e];
 			}
 		}
-		std::cout << "duration " << duration << std::endl;
+		DBG(std::cout << "duration " << duration << std::endl);
 		Aav =  Ah / nentries;
 		Ah = Ah / 3600.0 * 600.0;
 		wxString Aformat;

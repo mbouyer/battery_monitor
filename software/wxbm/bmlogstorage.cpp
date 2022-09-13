@@ -35,6 +35,12 @@
 #include "bmlogstorage.h"
 #include "bmlog.h"
 
+#ifdef DEBUG
+#define DBG(a) {a;}
+#else
+#define DBG(a) /* */
+#endif
+
 bmLogStorage::bmLogStorage(wxString logPath)
 {
 	time_t previous_t = 0;
@@ -148,16 +154,11 @@ bmLogStorage::bmLogStorage(wxString logPath)
 			break;
 		}
 #if 0
-		printf("idx 0x%06x inst %2d volts %2.2f amps %3.3f temp %3d time %ld flags 0x%02x\n",
-		    log_entry.id, log_entry.instance,
-		    log_entry.volts, log_entry.amps,
-		    log_entry.temp, log_entry.time, log_entry.flags);
+		DBG(printf("idx 0x%06x inst %2d volts %2.2f amps %3.3f temp %3d time %ld flags 0x%02x\n", log_entry.id, log_entry.instance, log_entry.volts, log_entry.amps, log_entry.temp, log_entry.time, log_entry.flags));
 #else
 		if (previous_t != 0 && log_entry.time != 0 &&
 		    previous_t != log_entry.time) {
-			printf("idx 0x%06x time %ld delta %ld flags 0x%02x\n",
-			    log_entry.id, log_entry.time, log_entry.time - previous_t,
-			    log_entry.flags);
+			DBG(printf("idx 0x%06x time %ld delta %ld flags 0x%02x\n", log_entry.id, log_entry.time, log_entry.time - previous_t, log_entry.flags));
 		}
 		previous_t = log_entry.time;
 #endif

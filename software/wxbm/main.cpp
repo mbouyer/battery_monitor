@@ -36,6 +36,12 @@
 #include <N2K/NMEA2000Properties.h>
 #include <N2K/NMEA2000PropertiesDialog.h>
 
+#ifdef DEBUG            
+#define DBG(a) {a;}
+#else
+#define DBG(a) /* */
+#endif
+
 const int myID_F_N2KCONF =	wxID_HIGHEST + 10;
 const int myID_F_PLOAD =	wxID_HIGHEST + 11;
 const int myID_F_PSAVE =	wxID_HIGHEST + 12;
@@ -191,7 +197,7 @@ void bmFrame::OnClose(wxCloseEvent & event)
 void bmFrame::OnShowLog(wxCommandEvent & WXUNUSED(event))
 {
 
-	std::cout <<  "show log ... " << std::endl;
+	DBG(std::cout <<  "show log ... " << std::endl);
 	wxp->bmlog->Show(true);
 
 }
@@ -334,7 +340,7 @@ wxbm::getTlabel(int i, wxWindow * parent)
 	wxString type = Tname[i].BeforeFirst(':');
 	wxString name = Tname[i].AfterFirst(':');
 
-	std::cout << "getTlabel " << i << " " << Tname[i] << " " << type << " " << name << std::endl;
+	DBG(std::cout << "getTlabel " << i << " " << Tname[i] << " " << type << " " << name << std::endl);
 	if (type.IsSameAs(_T("string"))) {
 		return new wxStaticText(parent, -1, name);
 	} else if (type.IsSameAs(_T("img"))) {
