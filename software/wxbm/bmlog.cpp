@@ -282,7 +282,6 @@ bmLog::OnClose(wxCloseEvent & WXUNUSED(event))
 void
 bmLog::OnShow(wxShowEvent &event)
 {
-	log_entries.clear();
 	log_cookie = bmlog_s->getLogBlock(-1, log_entries);
 	std::cout << "log_cookie " << log_cookie << std::endl;
 	if (log_cookie >= 0) {
@@ -388,9 +387,18 @@ bmLog::OnPrevious(wxCommandEvent &event)
 	centerX = (mp_startX + mp_endX) / 2.0;
 	centerX -= duration;
 	if (centerX <= log_start) {
-		/* XXX previous entry */
-		std::cout << "previous" << std::endl;
 		centerX = (mp_startX + mp_endX) / 2.0;
+		/* previous entry */
+		int new_coockie = bmlog_s->getPrevLogBlock(log_cookie, log_entries);
+		std::cout << "previous " << new_coockie << std::endl;
+		if (new_coockie < 0) {
+			/* no previous block */
+			centerX = (mp_startX + mp_endX) / 2.0;
+		} else {
+			log_cookie = new_coockie;
+			showGraphs();
+			return;
+		}
 	} else if (centerX < log_start + duration / 2.0) {
 		centerX = log_start + duration / 2.0;
 	}
@@ -410,9 +418,17 @@ bmLog::OnNext(wxCommandEvent &event)
 	centerX = (mp_startX + mp_endX) / 2.0;
 	centerX += duration;
 	if (centerX >= log_end) {
-		/* XXX next entry */
-		std::cout << "next" << std::endl;
-		centerX = (mp_startX + mp_endX) / 2.0;
+		/* next entry */
+		int new_coockie = bmlog_s->getNextLogBlock(log_cookie, log_entries);
+		std::cout << "next " << new_coockie << std::endl;
+		if (new_coockie < 0) {
+			/* no next block */
+			centerX = (mp_startX + mp_endX) / 2.0;
+		} else {
+			log_cookie = new_coockie;
+			showGraphs();
+			return;
+		}
 	} else if (centerX > log_end - duration / 2.0) {
 		centerX = log_end - duration / 2.0;
 	}
