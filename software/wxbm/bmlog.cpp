@@ -40,6 +40,7 @@
 static const int plotID_A = wxID_HIGHEST + 1;
 static const int plotID_V = wxID_HIGHEST + 2;
 static const int plotID_T = wxID_HIGHEST + 3;
+static const int fitID = wxID_HIGHEST + 6;
 static const int scaleID = wxID_HIGHEST + 7;
 static const int nextID = wxID_HIGHEST + 8;
 static const int prevID = wxID_HIGHEST + 9;
@@ -115,9 +116,12 @@ bmLog::bmLog(wxWindow* parent)
 	wxButton *prev = new wxButton(this, prevID, _T("<-"));
 	prev->Connect(wxEVT_BUTTON,
 	    wxCommandEventHandler(bmLog::OnPrevious), NULL, this);
-	wxButton *next = new wxButton(this, prevID, _T("->"));
+	wxButton *next = new wxButton(this, nextID, _T("->"));
 	next->Connect(wxEVT_BUTTON,
 	    wxCommandEventHandler(bmLog::OnNext), NULL, this);
+	wxButton *fit = new wxButton(this, fitID, _T("<>"));
+	fit->Connect(wxEVT_BUTTON,
+	    wxCommandEventHandler(bmLog::OnFit), NULL, this);
 	timescale = new wxTextCtrl(this, scaleID, _T("--d--h--m"),
 	    wxDefaultPosition, wxDefaultSize,
 	    wxTE_PROCESS_ENTER | wxTE_CENTRE);
@@ -127,10 +131,11 @@ bmLog::bmLog(wxWindow* parent)
 	    _T("-------- --:-- -------- --:--"),
 	    wxDefaultPosition, wxDefaultSize,
 	    wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);
-	topsizer->Add(prev, 0, wxEXPAND | wxALL, 5 );
-	topsizer->Add(timescale, 1, wxEXPAND | wxALL, 5 );
-	topsizer->Add(timerange, 1, wxEXPAND | wxALL, 5 );
-	topsizer->Add(next, 0, wxEXPAND | wxALL, 5 );
+	topsizer->Add(prev, 0, wxEXPAND | wxALL, 2 );
+	topsizer->Add(timescale, 1, wxEXPAND | wxALL, 2 );
+	topsizer->Add(timerange, 1, wxEXPAND | wxALL, 2 );
+	topsizer->Add(fit, 0, wxEXPAND | wxALL, 2 );
+	topsizer->Add(next, 0, wxEXPAND | wxALL, 2 );
 	mainsizer->Add(topsizer, 0, wxEXPAND | wxALL, 1 );
 
 	plotA = MakePlot(wxT("%.2fA"), plotID_A);
@@ -436,6 +441,13 @@ bmLog::OnNext(wxCommandEvent &event)
 	}
 	plotA->Fit(centerX - duration / 2, centerX + duration / 2,
 	    startY, endY, NULL);
+	/* setting plotA will trigger a OnScale event */
+}
+
+void
+bmLog::OnFit(wxCommandEvent &event)
+{
+	plotA->Fit();
 	/* setting plotA will trigger a OnScale event */
 }
 

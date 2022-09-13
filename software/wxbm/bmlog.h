@@ -68,6 +68,7 @@ class bmLog: public wxFrame
 	void OnScaleChange(wxCommandEvent & event);
 	void OnPrevious(wxCommandEvent & event);
 	void OnNext(wxCommandEvent & event);
+	void OnFit(wxCommandEvent & event);
 	void updateStats(void);
 	void logV2XY(std::vector<double> &, std::vector<double> &,
 	             std::vector<double> &, std::vector<double> &, int);
