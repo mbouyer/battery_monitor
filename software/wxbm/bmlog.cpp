@@ -281,6 +281,9 @@ bmLog::showGraphs(void)
 	plotT->Fit();
 	mp_scaleX = plotA->GetScaleX();
 	mp_posX = plotA->GetXpos();
+	mp_startX = plotA->GetDesiredXmin();
+	mp_endX = plotA->GetDesiredXmax();
+
 	updateStats();
 }
 
@@ -304,19 +307,25 @@ bmLog::OnShow(wxShowEvent &event)
 void
 bmLog::OnScale(wxCommandEvent &event)
 {
-	double n_scaleX, n_posX;
+	double n_scaleX, n_posX, n_startX, n_endX;
 	switch(event.GetId()) {
 	case plotID_A:
 		n_scaleX = plotA->GetScaleX();
 		n_posX = plotA->GetXpos();
+		n_startX = plotA->GetDesiredXmin();
+		n_endX = plotA->GetDesiredXmax();
 		break;
 	case plotID_V:
 		n_scaleX = plotV->GetScaleX();
 		n_posX = plotV->GetXpos();
+		n_startX = plotV->GetDesiredXmin();
+		n_endX = plotV->GetDesiredXmax();
 		break;
 	case plotID_T:
 		n_scaleX = plotT->GetScaleX();
 		n_posX = plotT->GetXpos();
+		n_startX = plotT->GetDesiredXmin();
+		n_endX = plotT->GetDesiredXmax();
 		break;
 	default:
 		return;
@@ -326,6 +335,8 @@ bmLog::OnScale(wxCommandEvent &event)
 
 	mp_scaleX = n_scaleX;
 	mp_posX = n_posX;
+	mp_startX = n_startX;
+	mp_endX = n_endX;
 
 	plotA->SetPosX(n_posX);
 	plotA->SetScaleX(n_scaleX);
@@ -454,9 +465,6 @@ bmLog::OnFit(wxCommandEvent &event)
 void
 bmLog::updateStats(void)
 {
-	mp_startX = plotA->GetDesiredXmin();
-	mp_endX = plotA->GetDesiredXmax();
-
 	DBG(std::cout << " start " << mp_startX << " end " << mp_endX << std::endl);
 	timerange->SetLabel(date2string(mp_startX) + _T(" ") + date2string(mp_endX));
 	timescale->ChangeValue(time2string(mp_endX - mp_startX));
