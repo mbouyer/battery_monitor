@@ -1148,7 +1148,8 @@ again:
 		}
 		if (PIR4bits.U1RXIF && (U1RXB == 'r'))
 			break;
-		SLEEP();
+		if (softintrs.byte == 0)
+			SLEEP();
 	}
 	while ((c = getchar()) != 'r') {
 		printf("resumed %u\n", timer0_read());
