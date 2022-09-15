@@ -624,7 +624,7 @@ bmLog::MakePlot(wxString yFormat, wxWindowID id)
 	yaxis->SetDrawOutsideMargins(false);
 	xaxis->SetLabelMode(mpX_DATETIME, mpX_LOCALTIME);
 	yaxis->SetLabelFormat(yFormat);
-	plot->SetMargins(20, 20, 20, 70);
+	plot->SetMargins(5, 5, 20, 70);
 	plot->AddLayer(xaxis);
 	plot->AddLayer(yaxis);
 	return plot;
@@ -647,7 +647,6 @@ bmLog::setTimeMark(time_t time)
 		}
 	}
 	time = log_entries[rec].time;
-	std::cout << date2string(time) << std::endl;
 	infoTextD->SetLabel(date2string(time));
 	for (int i = 0; i < NINST; i++) {
 		if (InstLabel[i] == NULL)
