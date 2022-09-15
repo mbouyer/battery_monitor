@@ -45,7 +45,11 @@ static const int scaleID = wxID_HIGHEST + 7;
 static const int nextID = wxID_HIGHEST + 8;
 static const int prevID = wxID_HIGHEST + 9;
 
-const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
+static const wxColour *instcolor[NINST] = {wxRED, wxGREEN, wxBLUE, wxBLACK};
+
+static const wchar_t degChar = 0x00B0;
+static const wxString _degFmt = wxT("%.1f");
+static const wxString degFmt = _degFmt + degChar;
 
 static wxString
 date2string(time_t date)
@@ -128,7 +132,7 @@ bmLog::bmLog(wxWindow* parent)
 	timescale->Connect(wxEVT_TEXT_ENTER,
 	    wxCommandEventHandler(bmLog::OnScaleChange), NULL, this);
 	timerange = new wxStaticText(this, -1,
-	    _T("-------- --:-- -------- --:--"),
+	    _T("XXXXXXXX XX:XX XXXXXXXX XX:XX"),
 	    wxDefaultPosition, wxDefaultSize,
 	    wxALIGN_CENTRE_HORIZONTAL | wxST_NO_AUTORESIZE);
 	topsizer->Add(prev, 0, wxEXPAND | wxALL, 2 );
@@ -138,14 +142,51 @@ bmLog::bmLog(wxWindow* parent)
 	topsizer->Add(next, 0, wxEXPAND | wxALL, 2 );
 	mainsizer->Add(topsizer, 0, wxEXPAND | wxALL, 1 );
 
-	plotA = MakePlot(wxT("%.2fA"), plotID_A);
-	plotV = MakePlot(wxT("%.2fV"), plotID_V);
-	wchar_t degChar = 0x00B0;
-	wxString degFmt = wxT("%.1f");
-	plotT = MakePlot(degFmt + degChar, plotID_T);
-
+	wxBoxSizer *infosizer = new wxBoxSizer(wxHORIZONTAL);
+	infoTextD = new wxStaticText(this, -1, wxT("XXXX-XX-XX XX:XX"),
+		    wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
+	infosizer->Add(infoTextD, wxALIGN_RIGHT);
 	for (int i = 0; i < NINST; i++) {
 		InstLabel[i] = wxp->getTlabel(i, this);
+		if (InstLabel[i] == NULL)
+			continue;
+		infoTextA[i] = new wxStaticText(this, -1, wxT("  XXXX.XXA"),
+		    wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
+		infoTextA[i]->SetForegroundColour(*instcolor[i]);
+		infosizer->Add(infoTextA[i], wxALIGN_RIGHT);
+	}
+	for (int i = 0; i < NINST; i++) {
+		if (InstLabel[i] == NULL)
+			continue;
+		infoTextV[i] = new wxStaticText(this, -1, wxT("  XXX.XXV"),
+		    wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
+		infoTextV[i]->SetForegroundColour(*instcolor[i]);
+		infosizer->Add(infoTextV[i], wxALIGN_RIGHT);
+	}
+	for (int i = 0; i < NINST; i++) {
+		if (InstLabel[i] == NULL)
+			continue;
+		infoTextT[i] = new wxStaticText(this, -1, wxT("  XXC"),
+		    wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
+		infoTextT[i]->SetForegroundColour(*instcolor[i]);
+		infosizer->Add(infoTextT[i], wxALIGN_RIGHT);
+	}
+	mainsizer->Add(infosizer, 0, wxEXPAND | wxALL | wxALIGN_RIGHT, 1 );
+
+	plotA = MakePlot(wxT("%.2fA"), plotID_A);
+	infoA = new bmInfoCoords(this, *wxYELLOW_PEN, wxT("%.2fA"));
+	plotA->AddLayer(infoA);
+	infoA->SetVisible(true);
+	plotV = MakePlot(wxT("%.2fV"), plotID_V);
+	infoV = new bmInfoCoords(this, *wxYELLOW_PEN, wxT("%.2fV"));
+	plotV->AddLayer(infoV);
+	infoV->SetVisible(true);
+	plotT = MakePlot(degFmt, plotID_T);
+	infoT = new bmInfoCoords(this, *wxYELLOW_PEN, degFmt);
+	plotT->AddLayer(infoT);
+	infoT->SetVisible(true);
+
+	for (int i = 0; i < NINST; i++) {
 		if (InstLabel[i] == NULL)
 			continue;
 		wxPen vectorpen(*instcolor[i], 2, wxSOLID);
@@ -535,10 +576,8 @@ bmLog::updateStats(void)
 		InstA[i]->SetLabel(wxString::Format(Aformat, Aav));
 		InstV[i]->SetLabel(wxString::Format(_T("%.2fV %.2fV"), Vmin, Vmax));
 		if (T != NULL) {
-			wchar_t degChar = 0x00B0;
-			wxString degFmt = wxT("%.1f");
 			InstT[i]->SetLabel(wxString::Format(
-			    degFmt + degChar + _T(" ") + degFmt + degChar,
+			    degFmt + _T(" ") + degFmt,
 			    Tmin, Tmax));
 		} else {
 			InstT[i]->SetLabel(_T(""));
@@ -588,10 +627,55 @@ bmLog::MakePlot(wxString yFormat, wxWindowID id)
 	plot->SetMargins(20, 20, 20, 70);
 	plot->AddLayer(xaxis);
 	plot->AddLayer(yaxis);
-	bmInfoCoords *nfo;
-	nfo = new bmInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH, yFormat);
-	nfo->SetLabelMode(mpX_DATETIME, mpX_LOCALTIME);
-	plot->AddLayer(nfo);
-	nfo->SetVisible(true);
 	return plot;
+}
+
+void
+bmLog::setTimeMark(time_t time)
+{
+	if (time < log_entries[0].time ||
+	    time > log_entries[log_entries.size() - 1].time)
+		return;
+	/* find the closest record */
+	int rec = 0;
+	int delta = abs(time - log_entries[0].time);
+	for (int i = 0; i < log_entries.size(); i++) {
+		int thisd = abs(time - log_entries[i].time);
+		if (thisd < delta) {
+			delta = thisd;
+			rec = i;
+		}
+	}
+	time = log_entries[rec].time;
+	std::cout << date2string(time) << std::endl;
+	infoTextD->SetLabel(date2string(time));
+	for (int i = 0; i < NINST; i++) {
+		if (InstLabel[i] == NULL)
+			continue;
+		int e;
+
+		for (e = rec; log_entries[e].time == time; e++) {
+			if (log_entries[e].instance == i)
+				break;
+		}
+		if (log_entries[e].time != time) {
+			infoTextA[i]->SetLabel("");
+			infoTextV[i]->SetLabel("");
+			infoTextT[i]->SetLabel("");
+		} else {
+			infoTextA[i]->SetLabel(wxString::Format(_T("%.2fA"),
+			    -log_entries[e].amps));
+			infoTextV[i]->SetLabel(wxString::Format(_T("%.2fV"),
+			    log_entries[e].volts));
+			if (log_entries[e].temp == TEMP_INVAL)
+				infoTextT[i]->SetLabel("");
+			else
+				infoTextT[i]->SetLabel(wxString::Format(degFmt,
+				    (double)(log_entries[e].temp - 273)));
+		}
+	}
+
+	infoA->UpdateX(time, plotA);
+	infoV->UpdateX(time, plotV);
+	infoT->UpdateX(time, plotT);
 }

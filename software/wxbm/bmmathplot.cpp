@@ -10,6 +10,9 @@
 // Licence:         wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
+#include <wx/wx.h>
+#include <wxbm.h>
+#include <bmlog.h>
 #include <bmmathplot.h>
 
 #define mpLN10 2.3025850929940456840179914546844
@@ -261,49 +264,34 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 	}
 }
 
-void bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
+void
+bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 {
 	time_t when = 0;
-	double xVal = 0.0, yVal = 0.0;
+	double xVal = 0.0;
 	struct tm timestruct;
 	if (event.GetEventType() == wxEVT_MOTION) {
-		wxString yStr;
 		int mouseX = ((wxMouseEvent&)event).GetX();
-		int mouseY = ((wxMouseEvent&)event).GetY();
 		xVal = w.p2x(mouseX);
-		yVal = w.p2y(mouseY);
-
-		m_content.Clear();
-
-		yStr.Printf(m_fmt, yVal);
-		if (m_labelType == mpX_DATETIME) {
-			when = (time_t) xVal;
-			if (when > 0) {
-				if (m_timeConv == mpX_LOCALTIME) {
-					timestruct = *localtime(&when);
-				} else {
-					timestruct = *gmtime(&when);
-				}
-				m_content.Printf(wxT("%04.0f-%02.0f-%02.0f %02.0f:%02.0f\n%s"), (double)timestruct.tm_year+1900, (double)timestruct.tm_mon+1, (double)timestruct.tm_mday, (double)timestruct.tm_hour, (double)timestruct.tm_min, yStr.c_str());
-			}
-		} else if (m_labelType == mpX_DATE) {
-			when = (time_t) xVal;
-			if (when > 0) {
-				if (m_timeConv == mpX_LOCALTIME) {
-					timestruct = *localtime(&when);
-				} else {
-					timestruct = *gmtime(&when);
-				}
-				m_content.Printf(wxT("%04.0f-%02.0f-%02.0f\n%s"), (double)timestruct.tm_year+1900, (double)timestruct.tm_mon+1, (double)timestruct.tm_mday, yStr.c_str());
-			}
-		} else if ((m_labelType == mpX_TIME) || (m_labelType == mpX_HOURS)) {
-			double modulus = fabs(xVal);
-			double sign = xVal/modulus;
-			double hh = floor(modulus/3600);
-			double mm = floor((modulus - hh*3600)/60);
-			double ss = modulus - hh*3600 - mm*60;
-			m_content.Printf(wxT("%02.0f:%02.0f\n%s"), sign*hh, mm, yStr.c_str());
-		}
-
+		m_bmlog->setTimeMark(xVal);
 	}
+}
+
+void
+bmInfoCoords::UpdateX(time_t time, mpWindow *w)
+{
+	if (time == m_time)
+		return;
+	m_time = time;
+	w->Refresh(false);
+}
+
+void
+bmInfoCoords::Plot(wxDC & dc, mpWindow & w)
+{
+	if (m_time < w.GetDesiredXmin() || m_time > w.GetDesiredXmax())
+		return;
+	int x = w.x2p(m_time);
+	dc.SetPen(m_pen);
+	dc.DrawLine(x, 0, x, w.GetScrY());
 }

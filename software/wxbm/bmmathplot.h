@@ -21,17 +21,23 @@ wxDECLARE_EVENT(SCALEX_EVENT, wxCommandEvent);
    round ticks to minutes and display time in a more concise way
    Allow Y format to be set
 */
-class bmInfoCoords : public mpInfoCoords
+class bmInfoCoords : public mpInfoLayer
 {
 public:
-    inline bmInfoCoords(wxRect rect, const wxBrush* brush = wxTRANSPARENT_BRUSH, wxString fmt = "%f") : mpInfoCoords(rect, brush) {
+    inline bmInfoCoords(bmLog *bmlog, wxPen pen, wxString fmt = "%f") : mpInfoLayer(wxRect(), wxTRANSPARENT_BRUSH) {
 	m_fmt = fmt;
+	m_bmlog = bmlog;
+	SetPen(pen);
     };
 
     virtual void UpdateInfo(mpWindow& w, wxEvent& event);
+    virtual void Plot(wxDC & dc, mpWindow & w);
+    void UpdateX(time_t time, mpWindow *w);
 
 protected:
     wxString m_fmt;
+    bmLog *m_bmlog;
+    time_t m_time;
 };
 
 /* mpFXYVector reimplementation which allows to read the data vectors */

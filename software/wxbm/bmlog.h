@@ -41,11 +41,16 @@ class bmLog: public wxFrame
 		       int temp, int instance, int idx, bool last);
 	void logError(int sid, int err);
 	void tick(void);
+	void setTimeMark(time_t time);
   private:
 	wxPanel *mainpanel;
 	wxTextCtrl *timescale;
 	wxStaticText *timerange;
 	wxWindow *InstLabel[NINST];
+	wxStaticText *infoTextD;
+	wxStaticText *infoTextA[NINST];
+	wxStaticText *infoTextV[NINST];
+	wxStaticText *infoTextT[NINST];
 	wxStaticText *InstAh[NINST];
 	wxStaticText *InstA[NINST];
 	wxStaticText *InstV[NINST];
@@ -56,6 +61,9 @@ class bmLog: public wxFrame
 	mpWindow *plotA;
 	mpWindow *plotV;
 	mpWindow *plotT;
+	bmInfoCoords *infoA;
+	bmInfoCoords *infoV;
+	bmInfoCoords *infoT;
 	double mp_scaleX;
 	double mp_posX;
 	time_t mp_startX, mp_endX;
