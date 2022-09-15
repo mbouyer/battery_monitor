@@ -633,45 +633,58 @@ bmLog::MakePlot(wxString yFormat, wxWindowID id)
 void
 bmLog::setTimeMark(time_t time)
 {
-	if (time < log_entries[0].time ||
-	    time > log_entries[log_entries.size() - 1].time)
+	const std::vector<double> *D;
+	const std::vector<double> *A;
+	const std::vector<double> *V;
+	const std::vector<double> *T;
+
+	/* find a valid date vertor */
+
+	D = NULL;
+	for (int i = 0; i < NINST && D == NULL; i++) {
+		if (InstLabel[i] == NULL)
+			continue;
+		Alayer[i]->GetData(D, A);
+	}
+
+	if (D == NULL)
+		return;
+
+	if (time < (*D)[0] || time > (*D)[D->size() - 1])
 		return;
 	/* find the closest record */
 	int rec = 0;
-	int delta = abs(time - log_entries[0].time);
-	for (int i = 0; i < log_entries.size(); i++) {
-		int thisd = abs(time - log_entries[i].time);
+	int delta = abs(time - (*D)[0]);
+	for (int i = 0; i < D->size(); i++) {
+		int thisd = abs(time - (*D)[i]);
 		if (thisd < delta) {
 			delta = thisd;
 			rec = i;
 		}
 	}
-	time = log_entries[rec].time;
+	time = (*D)[rec];
 	infoTextD->SetLabel(date2string(time));
+
 	for (int i = 0; i < NINST; i++) {
 		if (InstLabel[i] == NULL)
 			continue;
-		int e;
-
-		for (e = rec; log_entries[e].time == time; e++) {
-			if (log_entries[e].instance == i)
-				break;
-		}
-		if (log_entries[e].time != time) {
-			infoTextA[i]->SetLabel("");
-			infoTextV[i]->SetLabel("");
-			infoTextT[i]->SetLabel("");
+		Alayer[i]->GetData(D, A);
+		Vlayer[i]->GetData(D, V);
+		if (Tlayer[i]->IsVisible()) {
+			Tlayer[i]->GetData(D, T);
 		} else {
-			infoTextA[i]->SetLabel(wxString::Format(_T("%.2fA"),
-			    -log_entries[e].amps));
-			infoTextV[i]->SetLabel(wxString::Format(_T("%.2fV"),
-			    log_entries[e].volts));
-			if (log_entries[e].temp == TEMP_INVAL)
-				infoTextT[i]->SetLabel("");
-			else
-				infoTextT[i]->SetLabel(wxString::Format(degFmt,
-				    (double)(log_entries[e].temp - 273)));
+			T = NULL;
 		}
+
+		infoTextA[i]->SetLabel(wxString::Format(_T("%.2fA"),
+		    (*A)[rec]));
+		infoTextV[i]->SetLabel(wxString::Format(_T("%.2fV"),
+		    (*V)[rec]));
+		if (T == NULL)
+			infoTextT[i]->SetLabel("");
+		else
+			infoTextT[i]->SetLabel(wxString::Format(degFmt,
+			    (*T)[rec]));
 	}
 
 	infoA->UpdateX(time, plotA);
