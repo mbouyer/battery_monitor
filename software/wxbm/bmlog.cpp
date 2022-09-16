@@ -654,6 +654,13 @@ bmLog::setTimeMark(time_t time)
 	const std::vector<double> *V;
 	const std::vector<double> *T;
 
+	if (time == -1) {
+		infoA->UpdateX(-1, plotA);
+		infoV->UpdateX(-1, plotV);
+		infoT->UpdateX(-1, plotT);
+		return;
+	}
+
 	/* find a valid date vertor */
 
 	D = NULL;
@@ -663,8 +670,12 @@ bmLog::setTimeMark(time_t time)
 		Alayer[i]->GetData(D, A);
 	}
 
-	if (D == NULL)
+	if (D == NULL) {
+		infoA->UpdateX(-1, plotA);
+		infoV->UpdateX(-1, plotV);
+		infoT->UpdateX(-1, plotT);
 		return;
+	}
 
 	if (time < (*D)[0] || time > (*D)[D->size() - 1])
 		return;

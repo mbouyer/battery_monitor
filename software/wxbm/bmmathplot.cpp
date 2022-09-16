@@ -267,20 +267,24 @@ void bmScaleX::Plot(wxDC & dc, mpWindow & w)
 void
 bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 {
-	time_t when = 0;
-	double xVal = 0.0;
-	struct tm timestruct;
-	if (event.GetEventType() == wxEVT_LEAVE_WINDOW) {
-		m_y = NAN;
-		m_bmlog->setTimeMark(-1);
-		return;
-	}
 	if (event.GetEventType() == wxEVT_MOTION) {
+		double xVal = 0.0;
 		int mouseX = ((wxMouseEvent&)event).GetX();
 		int mouseY = ((wxMouseEvent&)event).GetY();
+		if (mouseX < w.GetMarginLeft() ||
+		    mouseX > w.GetScrX() - w.GetMarginRight() ||
+		    mouseY < w.GetMarginTop() ||
+		    mouseY > w.GetScrY() - w.GetMarginBottom()) {
+			m_y = NAN;
+			m_bmlog->setTimeMark(-1);
+			return;
+		}
 		xVal = w.p2x(mouseX);
 		m_y =  w.p2y(mouseY);
+		std::cout << "X " << mouseX << " Y " << mouseY << std::endl;
+
 		m_bmlog->setTimeMark(xVal);
+		return;
 	}
 }
 
