@@ -281,7 +281,6 @@ bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 		}
 		xVal = w.p2x(mouseX);
 		m_y =  w.p2y(mouseY);
-		std::cout << "X " << mouseX << " Y " << mouseY << std::endl;
 
 		m_bmlog->setTimeMark(xVal);
 		return;
