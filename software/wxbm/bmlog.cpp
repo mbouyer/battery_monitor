@@ -191,21 +191,21 @@ bmLog::bmLog(wxWindow* parent)
 			continue;
 		wxPen vectorpen(*instcolor[i], 2, wxSOLID);
 
-		Alayer[i] = new bmFXYVector(_("Amps"));
+		Alayer[i] = new bmFXYVector(plotA, _("Amps"));
 		Alayer[i]->Clear();
 		Alayer[i]->SetContinuity(true);
 		Alayer[i]->SetPen(vectorpen);
 		Alayer[i]->SetDrawOutsideMargins(false);
 		plotA->AddLayer(Alayer[i]);
 
-		Vlayer[i] = new bmFXYVector(_("Volts"));
+		Vlayer[i] = new bmFXYVector(plotV, _("Volts"));
 		Vlayer[i]->Clear();
 		Vlayer[i]->SetContinuity(true);
 		Vlayer[i]->SetPen(vectorpen);
 		Vlayer[i]->SetDrawOutsideMargins(false);
 		plotV->AddLayer(Vlayer[i]);
 
-		Tlayer[i] = new bmFXYVector(_("Temp"));
+		Tlayer[i] = new bmFXYVector(plotT, _("Temp"));
 		Tlayer[i]->Clear();
 		Tlayer[i]->SetContinuity(true);
 		Tlayer[i]->SetPen(vectorpen);
@@ -223,6 +223,9 @@ bmLog::bmLog(wxWindow* parent)
 	for (int i = 0; i < NINST; i++) {
 		if (InstLabel[i] == NULL)
 			continue;
+
+		InstLabel[i]->Connect(wxEVT_LEFT_DOWN,
+		    wxMouseEventHandler(bmLog::OnGraphToggle), Alayer[i], this);
 		lsizerA->Add(InstLabel[i], labelfl);
 		InstAh[i] = new wxStaticText(this, -1, wxT("XXXX.XXAh"),
 		    wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
@@ -234,11 +237,15 @@ bmLog::bmLog(wxWindow* parent)
 		lsizerA->Add(InstA[i], datafl);
 		/* each time we add a wxWindow we need to allocate a new one */
 		InstLabel[i] = wxp->getTlabel(i, this);
+		InstLabel[i]->Connect(wxEVT_LEFT_DOWN,
+		    wxMouseEventHandler(bmLog::OnGraphToggle), Vlayer[i], this);
 		lsizerV->Add(InstLabel[i], labelfl);
 		InstV[i] = new wxStaticText(this, -1, wxT("XX.XXV XX.XXV"));
 		InstV[i]->SetForegroundColour(*instcolor[i]);
 		lsizerV->Add(InstV[i], datafl);
 		InstLabel[i] = wxp->getTlabel(i, this);
+		InstLabel[i]->Connect(wxEVT_LEFT_DOWN,
+		    wxMouseEventHandler(bmLog::OnGraphToggle), Tlayer[i], this);
 		lsizerT->Add(InstLabel[i], labelfl);
 		InstT[i] = new wxStaticText(this, -1, wxT("XX.XXC XX.XXC"));
 		InstT[i]->SetForegroundColour(*instcolor[i]);
@@ -501,6 +508,15 @@ bmLog::OnFit(wxCommandEvent &event)
 {
 	plotA->Fit();
 	/* setting plotA will trigger a OnScale event */
+}
+
+void
+bmLog::OnGraphToggle(wxMouseEvent &event)
+{
+	bmFXYVector *layer = wxDynamicCast(event.GetEventUserData(), bmFXYVector);
+	layer->SetVisible(!layer->IsVisible());
+	layer->GetWindow()->Refresh(false);
+	event.Skip();
 }
 
 void

@@ -295,3 +295,5 @@ bmInfoCoords::Plot(wxDC & dc, mpWindow & w)
 	dc.SetPen(m_pen);
 	dc.DrawLine(x, 0, x, w.GetScrY());
 }
+
+wxIMPLEMENT_DYNAMIC_CLASS(bmFXYVector, mpFXYVector);

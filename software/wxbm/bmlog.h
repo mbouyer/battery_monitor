@@ -77,6 +77,7 @@ class bmLog: public wxFrame
 	void OnPrevious(wxCommandEvent & event);
 	void OnNext(wxCommandEvent & event);
 	void OnFit(wxCommandEvent & event);
+	void OnGraphToggle(wxMouseEvent & event);
 	void updateStats(void);
 	void logV2XY(std::vector<double> &, std::vector<double> &,
 	             std::vector<double> &, std::vector<double> &, int);

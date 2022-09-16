@@ -40,15 +40,24 @@ protected:
     time_t m_time;
 };
 
-/* mpFXYVector reimplementation which allows to read the data vectors */
+/* mpFXYVector reimplementation which allows to read the data vectors
+ * and keep a pointer to its mpwindow */
 class bmFXYVector : public mpFXYVector
 {
 	public:
-		inline bmFXYVector(wxString name = wxEmptyString, int flags = mpALIGN_NE) : mpFXYVector(name, flags) {};
+		inline bmFXYVector(mpWindow *w = NULL, wxString name = wxEmptyString, int flags = mpALIGN_NE) : mpFXYVector(name, flags) {
+			m_w = w;
+		}
 		inline void GetData(const std::vector<double> *&x, const std::vector<double> *&y) {
 			x = &m_xs;
 			y = &m_ys;
 		}
+		inline mpWindow *GetWindow(void) {
+			return m_w;
+		}
+	DECLARE_DYNAMIC_CLASS(bmFXYVector)
+	private:
+		mpWindow *m_w;
 };
 
 #endif // _BM_MATHPLOT_H_
