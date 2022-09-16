@@ -17,14 +17,13 @@ public:
 /* event sent when X range (possibly) changed */
 wxDECLARE_EVENT(SCALEX_EVENT, wxCommandEvent);
 
-/* mpScaleX reimplementation appropriate for the bmlog
-   round ticks to minutes and display time in a more concise way
-   Allow Y format to be set
+/* bmInfoCoords reimplementation appropriate for the bmlog
+   draw X/Y lines and send coords to parent
 */
-class bmInfoCoords : public mpInfoLayer
+class bmInfoCoords : public mpLayer
 {
 public:
-    inline bmInfoCoords(bmLog *bmlog, wxPen pen, wxString fmt = "%f") : mpInfoLayer(wxRect(), wxTRANSPARENT_BRUSH) {
+    inline bmInfoCoords(bmLog *bmlog, wxPen pen, wxString fmt = "%f") : mpLayer() {
 	m_fmt = fmt;
 	m_bmlog = bmlog;
 	SetPen(pen);
@@ -33,6 +32,8 @@ public:
     virtual void UpdateInfo(mpWindow& w, wxEvent& event);
     virtual void Plot(wxDC & dc, mpWindow & w);
     void UpdateX(time_t time, mpWindow *w);
+    virtual bool HasBBox() { return false; };
+    virtual bool IsInfo() { return true; };
 
 protected:
     wxString m_fmt;
