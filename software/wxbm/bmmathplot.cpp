@@ -270,9 +270,16 @@ bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 	time_t when = 0;
 	double xVal = 0.0;
 	struct tm timestruct;
+	if (event.GetEventType() == wxEVT_LEAVE_WINDOW) {
+		m_y = NAN;
+		m_bmlog->setTimeMark(-1);
+		return;
+	}
 	if (event.GetEventType() == wxEVT_MOTION) {
 		int mouseX = ((wxMouseEvent&)event).GetX();
+		int mouseY = ((wxMouseEvent&)event).GetY();
 		xVal = w.p2x(mouseX);
+		m_y =  w.p2y(mouseY);
 		m_bmlog->setTimeMark(xVal);
 	}
 }
@@ -289,11 +296,17 @@ bmInfoCoords::UpdateX(time_t time, mpWindow *w)
 void
 bmInfoCoords::Plot(wxDC & dc, mpWindow & w)
 {
-	if (m_time < w.GetDesiredXmin() || m_time > w.GetDesiredXmax())
+	if (m_time < w.GetDesiredXmin() || m_time > w.GetDesiredXmax() ||
+	    m_time == -1)
 		return;
 	int x = w.x2p(m_time);
+	int y = w.y2p(m_y);
 	dc.SetPen(m_pen);
 	dc.DrawLine(x, 0, x, w.GetScrY());
+	if (!std::isnan(m_y)) {
+		dc.DrawLine(0, y, w.GetScrX(), y);
+		dc.DrawText(wxString::Format(m_fmt, m_y), x, y);
+	}
 }
 
 wxIMPLEMENT_DYNAMIC_CLASS(bmFXYVector, mpFXYVector);

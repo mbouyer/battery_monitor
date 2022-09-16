@@ -27,18 +27,22 @@ public:
 	m_fmt = fmt;
 	m_bmlog = bmlog;
 	SetPen(pen);
+	m_time = -1;
+	m_y = NAN;
     };
 
     virtual void UpdateInfo(mpWindow& w, wxEvent& event);
     virtual void Plot(wxDC & dc, mpWindow & w);
     void UpdateX(time_t time, mpWindow *w);
     virtual bool HasBBox() { return false; };
+    virtual bool Inside() { return false; };
     virtual bool IsInfo() { return true; };
 
 protected:
     wxString m_fmt;
     bmLog *m_bmlog;
     time_t m_time;
+    double m_y;
 };
 
 /* mpFXYVector reimplementation which allows to read the data vectors
