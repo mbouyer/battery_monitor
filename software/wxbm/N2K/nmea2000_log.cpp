@@ -70,6 +70,10 @@ nmea2000_private_log_rx::fast_handle(const nmea2000_frame &f)
 	case PRIVATE_LOG_REPLY:
 		{
 		uint16_t idx = f.frame2uint16(2);
+		if (len <= 4) {
+			wxp->logError(sid, PRIVATE_LOG_ERROR_LAST);
+			return true;
+		}
 		for (int i = 4; i < len; ) {
 			bool last = 0;
 			u_int temp = f.frame2uint8(i);
