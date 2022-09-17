@@ -143,7 +143,7 @@ bmLog::bmLog(wxWindow* parent)
 	mainsizer->Add(topsizer, 0, wxEXPAND | wxALL, 1 );
 
 	wxBoxSizer *infosizer = new wxBoxSizer(wxHORIZONTAL);
-	infoTextD = new wxStaticText(this, -1, wxT("XXXX-XX-XX XX:XX"),
+	infoTextD = new wxStaticText(this, -1, wxT("XXXX-XX-XX XX:XX  "),
 		    wxDefaultPosition, wxDefaultSize, wxALIGN_RIGHT | wxST_NO_AUTORESIZE);
 	infosizer->Add(infoTextD, wxALIGN_RIGHT);
 	for (int i = 0; i < NINST; i++) {
