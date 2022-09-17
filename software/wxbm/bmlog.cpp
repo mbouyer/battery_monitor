@@ -113,6 +113,7 @@ bmLog::bmLog(wxWindow* parent)
 
 	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(bmLog::OnClose));
 	Connect(wxEVT_SHOW, wxShowEventHandler(bmLog::OnShow));
+	Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(bmLog::OnKeyPress));
 	Connect(SCALEX_EVENT, wxCommandEventHandler(bmLog::OnScale));
 
 	wxBoxSizer *mainsizer = new wxBoxSizer(wxVERTICAL);
@@ -516,6 +517,20 @@ bmLog::OnGraphToggle(wxMouseEvent &event)
 	bmFXYVector *layer = wxDynamicCast(event.GetEventUserData(), bmFXYVector);
 	layer->SetVisible(!layer->IsVisible());
 	layer->GetWindow()->Refresh(false);
+	event.Skip();
+}
+
+void
+bmLog::OnKeyPress(wxKeyEvent & event)
+{
+	if (event.GetModifiers() == wxMOD_CONTROL) {
+		/* handle ctrl-<x> */
+		switch(event.GetKeyCode()) {
+		case 'W':
+			Show(false);
+			return;
+		}
+	}
 	event.Skip();
 }
 
