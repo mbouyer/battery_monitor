@@ -670,7 +670,7 @@ bmLog::setTimeMark(time_t time)
 		Alayer[i]->GetData(D, A);
 	}
 
-	if (D == NULL) {
+	if (D == NULL || D->size() == 0) {
 		infoA->UpdateX(-1, plotA);
 		infoV->UpdateX(-1, plotV);
 		infoT->UpdateX(-1, plotT);
