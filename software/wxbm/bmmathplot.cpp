@@ -290,7 +290,7 @@ bmInfoCoords::UpdateInfo(mpWindow& w, wxEvent& event)
 void
 bmInfoCoords::UpdateX(time_t time, mpWindow *w)
 {
-	if (time == m_time)
+	if (time == m_time && std::isnan(m_y))
 		return;
 	m_time = time;
 	w->Refresh(false);
