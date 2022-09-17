@@ -106,7 +106,7 @@ bmFrame::bmFrame(const wxString& title)
 	file->Append(wxID_EXIT, _T("&Quit"));
 	menubar->Append(file, _T("&File"));
 	view = new wxMenu;
-	view->Append(myID_F_SHOWLOG, _T("&Log"));
+	view->Append(myID_F_SHOWLOG, _T("&Log\tCTRL+L"));
 	menubar->Append(view, _T("&View"));
 	SetMenuBar(menubar);
 	Connect(wxEVT_CLOSE_WINDOW,
