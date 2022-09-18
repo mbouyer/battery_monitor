@@ -47,7 +47,8 @@ class wxbm : public wxApp
 	void setStatus(int, int, const wxString &);
 	void setBmAddress(int);
 	void addLogEntry(int sid, double volts, double amps,
-	    int temp, int instance, int idx, bool last);
+	    int temp, int instance, int idx);
+	void logComplete(int sid);
 	void logError(int sid, int err);
 	void logTick(void);
 	wxWindow *getTlabel(int, wxWindow *);

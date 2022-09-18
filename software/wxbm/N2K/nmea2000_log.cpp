@@ -71,11 +71,10 @@ nmea2000_private_log_rx::fast_handle(const nmea2000_frame &f)
 		{
 		uint16_t idx = f.frame2uint16(2);
 		if (len <= 4) {
-			wxp->logError(sid, PRIVATE_LOG_ERROR_LAST);
+			wxp->logComplete(sid);
 			return true;
 		}
 		for (int i = 4; i < len; ) {
-			bool last = 0;
 			u_int temp = f.frame2uint8(i);
 			u_int volts = f.frame2uint8(i+1);
 			int32_t amps = f.frame2int16(i+2);
@@ -89,13 +88,12 @@ nmea2000_private_log_rx::fast_handle(const nmea2000_frame &f)
 				amps |= 0xfffc0000;
 			}
 			i += 5;
-			if ((idx & 0x100) != 0 && i >= len)
-				last = 1;
 			wxp->addLogEntry(sid, (double)volts / 100.0,
 			    (double)amps / 1000,
 			    (temp == 0xff) ? -1 : (temp + 233),
-			    instance, (idx & ~0x100), last);
-
+			    instance, (idx & ~0x100));
+			if ((idx & 0x100) != 0 && i >= len)
+				wxp->logComplete(sid);
 		}
 		return true;
 		}

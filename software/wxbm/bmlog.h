@@ -38,7 +38,8 @@ class bmLog: public wxFrame
 	bmLog(wxWindow* parent);
 	void address(int);
 	void addLogEntry(int sid, double volts, double amps,
-		       int temp, int instance, int idx, bool last);
+		       int temp, int instance, int idx);
+	void logComplete(int sid);
 	void logError(int sid, int err);
 	void tick(void);
 	void setTimeMark(time_t time);

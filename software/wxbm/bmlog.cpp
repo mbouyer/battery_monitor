@@ -624,9 +624,15 @@ bmLog::address(int a)
 
 void
 bmLog::addLogEntry(int sid, double volts, double amps,
-                 int temp, int instance, int idx, bool last)
+                 int temp, int instance, int idx)
 {
-	bmlog_s->addLogEntry(sid, volts, amps, temp, instance, idx, last);
+	bmlog_s->addLogEntry(sid, volts, amps, temp, instance, idx);
+}
+
+void
+bmLog::logComplete(int sid)
+{
+	bmlog_s->logComplete(sid);
 }
 
 void

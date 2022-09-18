@@ -191,12 +191,13 @@ bmLogStorage::address(int a)
 
 void
 bmLogStorage::addLogEntry(int sid, double volts, double amps,
-	 int temp, int instance, int idx, bool last)
+	 int temp, int instance, int idx)
 {
 	if (log_req_state != LOG_REQ_WAIT_BLOCK || log_req.sid != sid)
 		return; /* not waiting for that */
 	wxASSERT_MSG(cur_log_entry < LOG_ENTRIES && cur_log_entry >= 0,
 	    wxString::Format("cur_log_entry %d", cur_log_entry));
+
 	received_log_entries[cur_log_entry].volts = volts;
 	received_log_entries[cur_log_entry].amps = amps;
 	received_log_entries[cur_log_entry].temp = temp;
@@ -208,48 +209,52 @@ bmLogStorage::addLogEntry(int sid, double volts, double amps,
 	if (volts == 0 && amps == 0 && instance == 0 && temp == TEMP_NULL)
 		received_log_entries[cur_log_entry].flags = LOGE_BOUNDARY;
 	cur_log_entry++;
-	if (last) {
-		log_lock();
-		for (int i = 0; i < cur_log_entry; i++) {
-			printf("sid 0x%02x idx 0x%06x %3d inst %2d volts %2.2f amps %3.3f temp %3d",
-			    sid, received_log_entries[i].id, i,
-			    received_log_entries[i].instance,
-			    received_log_entries[i].volts, received_log_entries[i].amps,
-			    received_log_entries[i].temp);
-			switch(log_update_state) {
-			case LOG_UP_IDLE:
-				wxASSERT_MSG(false, _T("log_update_state idle"));
-				break;
-			case LOG_UP_SEARCH:
-				if (received_log_entries[i].id ==
-				     log_entries.back().id) {
-					printf(" found\n");
-					/* up to now these are new entries */
-					log_update_state = LOG_UP_DOUP;
-				} else {
-					printf("\n");
-				}
-				break;
-			case LOG_UP_DOUP:
-				log_update_state = LOG_UP_DOUP_NEWDATA;
-				/* FALLTHROUGGH */
-			case LOG_UP_DOUP_NEWDATA:
-				printf(" store\n");
-				log_entries.push_back(received_log_entries[i]);
-				break;
+	wxASSERT_MSG(cur_log_entry =< LOG_ENTRIES && cur_log_entry > 0,
+	    wxString::Format("cur_log_entry %d", cur_log_entry));
+}
+
+void
+bmLogStorage::logComplete(int sid)
+{
+	if (log_req_state != LOG_REQ_WAIT_BLOCK || log_req.sid != sid)
+		return; /* not waiting for that */
+	log_lock();
+	for (int i = 0; i < cur_log_entry; i++) {
+		printf("sid 0x%02x idx 0x%06x %3d inst %2d volts %2.2f amps %3.3f temp %3d",
+		    sid, received_log_entries[i].id, i,
+		    received_log_entries[i].instance,
+		    received_log_entries[i].volts, received_log_entries[i].amps,
+		    received_log_entries[i].temp);
+		switch(log_update_state) {
+		case LOG_UP_IDLE:
+			wxASSERT_MSG(false, _T("log_update_state idle"));
+			break;
+		case LOG_UP_SEARCH:
+			if (received_log_entries[i].id ==
+			     log_entries.back().id) {
+				printf(" found\n");
+				/* up to now these are new entries */
+				log_update_state = LOG_UP_DOUP;
+			} else {
+				printf("\n");
 			}
+			break;
+		case LOG_UP_DOUP:
+			log_update_state = LOG_UP_DOUP_NEWDATA;
+			/* FALLTHROUGGH */
+		case LOG_UP_DOUP_NEWDATA:
+			printf(" store\n");
+			log_entries.push_back(received_log_entries[i]);
+			break;
 		}
-		cur_log_entry = 0;
-		log_req.cmd = PRIVATE_LOG_REQUEST_NEXT;
-		sid_inc();
-		log_req.idx = idx;
-		log_req_state = LOG_REQ_DOREQ;
-		// sendreq();
-		log_unlock();
-	} else {
-		wxASSERT_MSG(cur_log_entry < LOG_ENTRIES && cur_log_entry >= 0,
-		    wxString::Format("cur_log_entry %d", cur_log_entry));
 	}
+	cur_log_entry = 0;
+	log_req.cmd = PRIVATE_LOG_REQUEST_NEXT;
+	sid_inc();
+	log_req.idx = (log_entries.back().id & ID_IDX_MASK) >> ID_IDX_SHIFT;
+	log_req_state = LOG_REQ_DOREQ;
+	// sendreq();
+	log_unlock();
 }
 
 void

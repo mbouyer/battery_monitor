@@ -313,10 +313,17 @@ wxbm::setBmAddress(int a)
 
 void
 wxbm::addLogEntry(int sid, double volts, double amps,
-                 int temp, int instance, int idx, bool last)
+                 int temp, int instance, int idx)
 {
 	if (getlog)
-		bmlog->addLogEntry(sid, volts, amps, temp, instance, idx, last);
+		bmlog->addLogEntry(sid, volts, amps, temp, instance, idx);
+}
+
+void
+wxbm::logComplete(int sid)
+{
+	if (getlog)
+		bmlog->logComplete(sid);
 }
 
 void

@@ -59,7 +59,8 @@ class bmLogStorage {
 	bmLogStorage(wxString logPath);
 	void address(int);
 	void addLogEntry(int sid, double volts, double amps,
-		       int temp, int instance, int idx, bool last);
+		       int temp, int instance, int idx);
+	void logComplete(int sid);
 	void logError(int sid, int err);
 	void tick(void);
 	int getLogBlock(int cookie, std::vector<bm_log_entry_t> &entries);
