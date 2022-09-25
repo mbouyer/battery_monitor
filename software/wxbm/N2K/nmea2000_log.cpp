@@ -71,6 +71,8 @@ nmea2000_private_log_rx::fast_handle(const nmea2000_frame &f)
 		{
 		uint16_t idx = f.frame2uint16(2);
 		if (len <= 4) {
+			printf("empty page log sid 0x%x idx 0x%x\n",
+			    sid, idx);
 			wxp->logComplete(sid);
 			return true;
 		}
