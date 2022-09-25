@@ -422,7 +422,7 @@ handle_log_request(uint8_t cmd) {
 				break;
 		}
 		if (i == LOG_BLOCKS) {
-			/* all entries free (e.g. just after a reset */
+			/* all entries free (e.g. just after a reset) */
 			send_log_error(sid, PRIVATE_LOG_ERROR_NOTFOUND);
 			return;
 		}
@@ -430,7 +430,8 @@ handle_log_request(uint8_t cmd) {
 		return;
 	}
 	/* look for gen/page */
-	if ((battlog[page].b_flags & B_FILL_GEN) != gen) {
+	if ((battlog[page].b_flags & B_FILL_GEN) != gen ||
+	    (battlog[page].b_flags & B_FILL_STAT) == B_FILL_FREE) {
 		send_log_error(sid, PRIVATE_LOG_ERROR_NOTFOUND);
 		return;
 	}
@@ -446,6 +447,11 @@ handle_log_request(uint8_t cmd) {
 		return;
 	}
 	page = (page + 1) & LOG_BLOCKS_MASK;
+	if ((battlog[page].b_flags & B_FILL_STAT) == B_FILL_FREE) {
+		/* next page is free, assume previous was the last */
+		send_log_error(sid, PRIVATE_LOG_ERROR_LAST);
+		return;
+	}
 	send_log_block(sid, page);
 }
 
