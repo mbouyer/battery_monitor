@@ -44,7 +44,7 @@
 #include "NMEA2000.h"
 #include <wx/fontdlg.h>
 
-NMEA2000PropertiesDialog::NMEA2000PropertiesDialog( wxWindow* parent )
+NMEA2000PropertiesDialog::NMEA2000PropertiesDialog( wxWindow* parent, int bmadd)
 :
 wxDialog(parent, wxID_ANY, _T("NMEA2000"), wxDefaultPosition, wxSize( -1,-1 ), wxCAPTION|wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER|wxTAB_TRAVERSAL)
 {
@@ -64,7 +64,7 @@ wxDialog(parent, wxID_ANY, _T("NMEA2000"), wxDefaultPosition, wxSize( -1,-1 ), w
     m_SizerBasicProperties->SetNonFlexibleGrowMode( wxFLEX_GROWMODE_SPECIFIED );
 
     wxStaticText *staticTextNameVal = new wxStaticText( m_panelBasicProperties, wxID_ANY,
-	_T("wxbm"),
+	wxString::Format("wxbm address: %d", bmadd),
 	wxDefaultPosition, wxDefaultSize, 0 );
     staticTextNameVal->Wrap( -1 );
     m_SizerBasicProperties->Add( staticTextNameVal, 0, wxALL, 5 );

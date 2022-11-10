@@ -56,7 +56,7 @@ protected:
     wxArrayString *ifList;
 
 public:
-    NMEA2000PropertiesDialog( wxWindow* parent );
+    NMEA2000PropertiesDialog( wxWindow* parent, int address );
     ~NMEA2000PropertiesDialog( void );
 
 private:

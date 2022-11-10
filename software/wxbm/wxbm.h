@@ -53,6 +53,7 @@ class wxbm : public wxApp
 	void logTick(void);
 	wxWindow *getTlabel(int, wxWindow *);
 	inline wxConfig *getConfig(void) { return config; };
+	inline int getBmAddress(void) { return bmAddress; };
 
 	bmLog *bmlog;
   private:
@@ -60,6 +61,7 @@ class wxbm : public wxApp
 	bmFrame *frame;
 	bool getlog;
 	wxString Tname[NINST];
+	int bmAddress;
 };
 
 extern wxbm *wxp;

@@ -134,7 +134,7 @@ bmFrame::bmFrame(const wxString& title)
 
 void bmFrame::OnN2KConfig(wxCommandEvent & WXUNUSED(event))
 {
-	NMEA2000PropertiesDialog *N2KPropDialog = new NMEA2000PropertiesDialog(this);
+	NMEA2000PropertiesDialog *N2KPropDialog = new NMEA2000PropertiesDialog(this, wxp->getBmAddress());
 	N2KPropDialog->ShowModal();
 	delete N2KPropDialog;
 
@@ -248,6 +248,7 @@ bool wxbm::OnInit()
 	frame->SetIcon(icon);
 	frame->Show(true);
 	nmea2000P->Init();
+	bmAddress = -1;
 
 	return true;
 }
@@ -309,6 +310,7 @@ wxbm::setBmAddress(int a)
 {
 	if (getlog)
 		bmlog->address(a);
+	bmAddress = a;
 }
 
 void
