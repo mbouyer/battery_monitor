@@ -79,19 +79,19 @@ nmea2000_private_log_rx::fast_handle(const nmea2000_frame &f)
 		for (int i = 4; i < len; ) {
 			u_int temp = f.frame2uint8(i);
 			u_int volts = f.frame2uint8(i+1);
-			int32_t amps = f.frame2int16(i+2);
+			int32_t amps = f.frame2uint16(i+2);
 			u_int data = f.frame2uint8(i+4);
 			bool nvalid = (data & 0x8);
 			u_int instance = ((data >> 6) & 0x3);
 			volts = volts | (data & 0x7) << 8;
-			amps = amps | ((data >> 4) & 0x3) << 8;
+			amps = amps | (((data >> 4) & 0x3) << 16);
 			/* expand sign */
 			if (amps & 0x20000) {
 				amps |= 0xfffc0000;
 			}
 			i += 5;
 			wxp->addLogEntry(sid, (double)volts / 100.0,
-			    (double)amps / 1000,
+			    (double)amps / 1000.0,
 			    (temp == 0xff) ? -1 : (temp + 233),
 			    instance, (idx & ~0x100));
 			if ((idx & 0x100) != 0 && i >= len)
